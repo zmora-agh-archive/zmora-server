@@ -1,3 +1,6 @@
+{-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE UndecidableInstances #-}
+
 module Fake ( runFaker
             , Fake(..)
             ) where
@@ -7,7 +10,9 @@ import Control.Monad
 import           Faker.Utils    (Faker(..), runFaker, randomInt)
 import qualified Faker.Name     as F
 import qualified Faker.Internet as F
+
 import Data.Text
+import Database.Persist.Sql
 
 import Models
 
@@ -27,3 +32,6 @@ instance Fake User where
 
 instance Fake Contest where
   fake = Contest <$> p F.name <*> fake
+
+instance ToBackendKey SqlBackend a => Fake (Key a) where
+  fake = toSqlKey <$> (fromIntegral <$> randomInt (0, 100))

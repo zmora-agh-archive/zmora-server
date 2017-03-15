@@ -29,6 +29,6 @@ User json
 
 Contest json
   name Text
-  owner User
+  ownerId UserId
   deriving Show  
 |]

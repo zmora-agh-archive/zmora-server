@@ -20,6 +20,10 @@ class HasServer api '[] => HasMock api where
 instance (KnownSymbol path, HasMock rest) => HasMock (path :> rest) where
   mock _ = mock (Proxy :: Proxy rest)
 
+instance (KnownSymbol sym, FromHttpApiData a, HasMock rest) => 
+            HasMock (Capture sym a :> rest) where
+  mock _ = const $ mock (Proxy :: Proxy rest)
+
 instance (HasMock a, HasMock b) => HasMock (a :<|> b) where
   mock _ = mock (Proxy :: Proxy a) :<|> mock (Proxy :: Proxy b)
 

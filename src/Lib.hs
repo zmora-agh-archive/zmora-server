@@ -14,6 +14,7 @@ import Models
 import MockAPI
 
 type API =  "users"    :> Get '[JSON] [User]
+       :<|> "contests" :> Capture "id" Integer :> Get '[JSON] Contest
        :<|> "contests" :> Get '[JSON] [Contest]
 
 api :: Proxy API
