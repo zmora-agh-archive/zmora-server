@@ -38,7 +38,7 @@ resolver: lts-8.5
 packages:
 - '.'
 - location:
-    git: git@github.com:zmora-agh/faker
+    git: https://github.com/zmora-agh/faker.git
     commit: cbadf5cec05baffc213bca7a8e93761895728b5e
   extra-dep: true
 # Dependency packages to be pulled from upstream that are not in the resolver
