@@ -13,7 +13,8 @@ import Servant
 import Models
 import MockAPI
 
-type API = "users" :> Get '[JSON] [User]
+type API =  "users"    :> Get '[JSON] [User]
+       :<|> "contests" :> Get '[JSON] [Contest]
 
 api :: Proxy API
 api = Proxy

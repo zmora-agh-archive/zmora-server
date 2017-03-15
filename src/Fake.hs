@@ -7,6 +7,7 @@ import Control.Monad
 import           Faker.Utils    (Faker(..), runFaker, randomInt)
 import qualified Faker.Name     as F
 import qualified Faker.Internet as F
+import Data.Text
 
 import Models
 
@@ -18,5 +19,11 @@ instance Fake a => Fake [a] where
     i <- randomInt (0, 25)
     replicateM i fake
 
+p :: Functor f => f String -> f Text
+p = fmap pack
+
 instance Fake User where
-  fake = User <$> F.userName <*> F.name <*> F.email
+  fake = User <$> p F.email <*> p F.name <*> p F.userName
+
+instance Fake Contest where
+  fake = Contest <$> p F.name <*> fake

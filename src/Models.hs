@@ -13,17 +13,22 @@ module Models where
 
 import Database.Persist
 import Database.Persist.TH
+import Data.Text
 
 share
   [ mkPersist sqlSettings { mpsGenerateLenses = True }
   , mkMigrate "migrateAll"
   ] [persistLowerCase|
 User json
-  nickname String
-  name String
-  email String
+  email Text
+  nick Text
+  name Text
+  UniqueNick nick
+  UniqueEmail email
   deriving Show
+
 Contest json
-  name String
+  name Text
+  owner User
   deriving Show  
 |]
