@@ -1,37 +1,33 @@
 {-# LANGUAGE FlexibleContexts     #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Fake ( runFaker
-            , Fake(..)
-            ) where
+module Fake where
 
-import Control.Monad
+import Control.Monad.IO.Class
 
-import           Faker.Utils    (Faker(..), runFaker, randomInt)
+import           Faker.Utils    (Faker(..), toGen, randomInt)
 import qualified Faker.Name     as F
 import qualified Faker.Internet as F
 
+import Test.QuickCheck.Arbitrary (Arbitrary(..))
+import Test.QuickCheck.Gen (Gen(..), choose)
 import Data.Text
 import Database.Persist.Sql
 
 import Models
 
-class Fake a where
-  fake :: Faker a
-
-instance Fake a => Fake [a] where
-  fake = do
-    i <- randomInt (0, 25)
-    replicateM i fake
-
 p :: Functor f => f String -> f Text
 p = fmap pack
 
-instance Fake User where
-  fake = User <$> p F.email <*> p F.name <*> p F.userName
+instance ToBackendKey SqlBackend a => Arbitrary (Key a) where
+  arbitrary = toSqlKey <$> choose (0, 100)
 
-instance Fake Contest where
-  fake = Contest <$> p F.name <*> fake
+instance (Arbitrary a, PersistEntity a, ToBackendKey SqlBackend a) 
+            => Arbitrary (Entity a) where
+  arbitrary = Entity <$> arbitrary <*> arbitrary
 
-instance ToBackendKey SqlBackend a => Fake (Key a) where
-  fake = toSqlKey <$> (fromIntegral <$> randomInt (0, 100))
+instance Arbitrary User where
+  arbitrary = toGen $ User <$> p F.email <*> p F.name <*> p F.userName
+
+instance Arbitrary Contest where
+  arbitrary = toGen $ Contest <$> p F.name
