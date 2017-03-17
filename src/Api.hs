@@ -6,6 +6,7 @@ module Api
     ) where
 
 import Network.Wai
+import Network.Wai.Middleware.Cors
 import Network.Wai.Handler.Warp
 import Database.Persist ( Entity(..) )
 
@@ -23,4 +24,4 @@ api :: Proxy API
 api = Proxy
 
 startApp :: IO ()
-startApp = run 8080 $ serve api (mock api Proxy)
+startApp = run 8080 $ simpleCors $ serve api (mock api Proxy)
