@@ -39,7 +39,7 @@ packages:
 - '.'
 - location:
     git: https://github.com/zmora-agh/faker.git
-    commit: 70297221032018d3aa97eb1eccf4c237e5ef118b
+    commit: 3905aa9c1f535e4edaf27673a8643f0a7730fb5f
   extra-dep: true
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
