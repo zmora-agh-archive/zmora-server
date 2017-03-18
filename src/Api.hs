@@ -16,9 +16,10 @@ import Servant.Mock
 import Models
 import Fake
 
-type API =  "users"    :> Get '[JSON] [Entity User]
-       :<|> "contests" :> Capture "id" Integer :> Get '[JSON] Contest
-       :<|> "contests" :> Get '[JSON] [Entity Contest]
+type API =  "users"       :> Get '[JSON] [Entity User]
+       :<|> "currentUser" :> Get '[JSON] User
+       :<|> "contests"    :> Capture "id" Integer :> Get '[JSON] Contest
+       :<|> "contests"    :> Get '[JSON] [Entity Contest]
 
 api :: Proxy API
 api = Proxy
