@@ -27,7 +27,7 @@ instance (Arbitrary a, PersistEntity a, ToBackendKey SqlBackend a)
   arbitrary = Entity <$> arbitrary <*> arbitrary
 
 instance Arbitrary User where
-  arbitrary = toGen $ User <$> p F.email <*> p F.name <*> p F.userName
+  arbitrary = toGen $ User <$> p F.email <*> p F.userName <*> p F.name
 
 instance Arbitrary Contest where
   arbitrary = toGen $ Contest <$> p F.name
