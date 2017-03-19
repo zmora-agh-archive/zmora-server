@@ -23,6 +23,7 @@ User json
   email Text
   nick Text
   name Text
+  avatar Text
   UniqueNick nick
   UniqueEmail email
   deriving Show
