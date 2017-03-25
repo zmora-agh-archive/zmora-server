@@ -20,10 +20,12 @@ library
                      , aeson
                      , bytestring
                      , faker
+                     , ghc-prim
                      , lens
                      , persistent
                      , persistent-template
                      , QuickCheck
+                     , scrypt
                      , servant
                      , servant-mock
                      , servant-server

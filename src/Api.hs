@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE TypeOperators       #-}
+{-# LANGUAGE TypeFamilies        #-}
 
 module Api
     ( startApp
@@ -9,6 +10,7 @@ import Network.Wai
 import Network.Wai.Middleware.Cors
 import Network.Wai.Handler.Warp
 import Database.Persist ( Entity(..) )
+import GHC.Types
 
 import Servant
 import Servant.Mock
@@ -16,10 +18,23 @@ import Servant.Mock
 import Models
 import Fake
 
-type API =  "users"       :> Get '[JSON] [Entity User]
-       :<|> "currentUser" :> Get '[JSON] User
-       :<|> "contests"    :> Capture "id" Integer :> Get '[JSON] Contest
-       :<|> "contests"    :> Get '[JSON] [Entity Contest]
+type family ResourceAPI (path :: Symbol) a where
+  ResourceAPI path a =  path :> Get '[JSON] [Entity a]
+                   :<|> path :> Capture "id" Integer :> Get '[JSON] a
+
+type family SResourceAPI (path :: Symbol) a sub where
+  SResourceAPI path a sub = path :> Get '[JSON] [Entity a]
+    :<|> path :> Capture "id" Integer :> (Get '[JSON] a :<|> sub)
+
+type API = "currentUser" :> Get '[JSON] [Entity User] -- temporary
+       :<|> ResourceAPI "users" User
+       :<|> SResourceAPI "contests" Contest (
+              SResourceAPI "problems" ContestProblem (
+                     ResourceAPI "examples" ProblemExample
+                :<|> ResourceAPI "questions" Question
+                :<|> ResourceAPI "submits" Submit
+              )
+            )
 
 api :: Proxy API
 api = Proxy

@@ -61,34 +61,46 @@ Problem json
   description Text
   deriving Show
 
-ProblemExamples
-  printable Bool
+ProblemExample json
   problem ProblemId
-  input ByteString
-  result ByteString
+  input Text
+  result Text
   explanation Text
   deriving Show
 
-ContestParticipation
+ContestParticipation json
   contest ContestId
   user UserId
   UniqueParticipation contest user
   deriving Show
 
-ContestProblems
+ContestProblem json
   shortcode Text
   contest ContestId
-  problem ProblemId
+  problem Problem
   UniqueProblem contest problem
   UniqueShortcode contest shortcode
   deriving Show
 
-Submits
-  contest ProblemId
+Question json
+  problem ContestProblemId
+  author UserId
+  question Text
+  answer Answer Maybe
+
+Answer json
+  author UserId
+  answer Text
+
+Submit json
+  problem ContestProblemId
   author UserId
   date UTCTime
   checksum Text
-  printable Bool
-  source ByteString
+  deriving Show
+
+SubmitFile
+  submit SubmitId
+  contest ByteString
   deriving Show
 |]

@@ -24,7 +24,7 @@ p :: Functor f => f String -> f Text
 p = fmap pack
 
 instance ToBackendKey SqlBackend a => Arbitrary (Key a) where
-  arbitrary = toSqlKey <$> choose (0, 100)
+  arbitrary = toSqlKey <$> choose (0, 10000)
 
 instance (Arbitrary a, PersistEntity a, ToBackendKey SqlBackend a)
             => Arbitrary (Entity a) where
@@ -50,3 +50,35 @@ instance Arbitrary Contest where
                               <*> randomTime
                               <*> randomInt (3600, 360000)
                               <*> randomInt (3600, 360000)
+
+instance Arbitrary Problem where
+  arbitrary = Problem <$> arbitrary
+                      <*> (toGen $ p F.sentence)
+                      <*> (toGen $ p F.paragraph)
+
+instance Arbitrary ContestProblem where
+  arbitrary = ContestProblem <$> (toGen $ p F.word)
+                             <*> arbitrary
+                             <*> arbitrary
+
+instance Arbitrary ProblemExample where
+  arbitrary =  ProblemExample <$> arbitrary
+                              <*> (toGen $ p F.paragraph)
+                              <*> (toGen $ p F.paragraph)
+                              <*> (toGen $ p F.sentence)
+
+instance Arbitrary Question where
+  arbitrary = Question <$> arbitrary
+                       <*> arbitrary
+                       <*> (toGen $ p F.sentence)
+                       <*> arbitrary
+
+instance Arbitrary Answer where
+  arbitrary = Answer <$> arbitrary
+                     <*> (toGen $ p F.sentence)
+
+instance Arbitrary Submit where
+  arbitrary = Submit <$> arbitrary
+                     <*> arbitrary
+                     <*> (toGen $ randomTime)
+                     <*> (toGen $ p F.sentence) -- TEMPORARY
