@@ -103,4 +103,7 @@ SubmitFile
   submit SubmitId
   contest ByteString
   deriving Show
+
+CurrentTime json
+  time UTCTime
 |]
