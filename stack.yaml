@@ -41,6 +41,10 @@ packages:
     git: https://github.com/zmora-agh/faker.git
     commit: 5200cf2ce662598186a5ed23430a5fd55cf41569
   extra-dep: true
+- location:
+    git: https://github.com/themoritz/diener.git
+    commit: 63ce80f903f654259e5a025535c7f88b3f82933c
+  extra-dep: true
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
 extra-deps: [gimlh-0.1.3.0]

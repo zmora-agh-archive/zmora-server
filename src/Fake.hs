@@ -35,7 +35,7 @@ randomTime = do
   d <- fromGregorian <$> (fromIntegral <$> randomInt (2000, 2050))
                      <*> randomInt (1, 12)
                      <*> randomInt (1, 28)
-  t <- secondsToDiffTime <$> fromIntegral <$> randomInt (0, 86401)
+  t <- secondsToDiffTime . fromIntegral <$> randomInt (0, 86401)
   return $ UTCTime d t
 
 instance Arbitrary User where
@@ -53,32 +53,32 @@ instance Arbitrary Contest where
 
 instance Arbitrary Problem where
   arbitrary = Problem <$> arbitrary
-                      <*> (toGen $ p F.sentence)
-                      <*> (toGen $ p F.paragraph)
+                      <*> toGen (p F.sentence)
+                      <*> toGen (p F.paragraph)
 
 instance Arbitrary ContestProblem where
-  arbitrary = ContestProblem <$> (toGen $ p F.word)
+  arbitrary = ContestProblem <$> toGen (p F.word)
                              <*> arbitrary
                              <*> arbitrary
 
 instance Arbitrary ProblemExample where
   arbitrary =  ProblemExample <$> arbitrary
-                              <*> (toGen $ p F.paragraph)
-                              <*> (toGen $ p F.paragraph)
-                              <*> (toGen $ p F.sentence)
+                              <*> toGen (p F.paragraph)
+                              <*> toGen (p F.paragraph)
+                              <*> toGen (p F.sentence)
 
 instance Arbitrary Question where
   arbitrary = Question <$> arbitrary
                        <*> arbitrary
-                       <*> (toGen $ p F.sentence)
+                       <*> toGen (p F.sentence)
                        <*> arbitrary
 
 instance Arbitrary Answer where
   arbitrary = Answer <$> arbitrary
-                     <*> (toGen $ p F.sentence)
+                     <*> toGen (p F.sentence)
 
 instance Arbitrary Submit where
   arbitrary = Submit <$> arbitrary
                      <*> arbitrary
-                     <*> (toGen $ randomTime)
-                     <*> (toGen $ p F.sentence) -- TEMPORARY
+                     <*> toGen randomTime
+                     <*> toGen (p F.sentence) -- TEMPORARY
