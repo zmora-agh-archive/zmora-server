@@ -27,6 +27,7 @@ type family SResourceAPI (path :: Symbol) a sub where
     :<|> path :> Capture "id" Integer :> (Get '[JSON] a :<|> sub)
 
 type API = "currentUser" :> Get '[JSON] (Entity User) -- temporary
+       :<|> "getTime" :> Get '[JSON] CurrentTime
        :<|> ResourceAPI "users" User
        :<|> SResourceAPI "contests" Contest (
               SResourceAPI "problems" ContestProblem (

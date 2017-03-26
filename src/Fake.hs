@@ -82,3 +82,6 @@ instance Arbitrary Submit where
                      <*> arbitrary
                      <*> (toGen $ randomTime)
                      <*> (toGen $ p F.sentence) -- TEMPORARY
+
+instance Arbitrary CurrentTime where
+  arbitrary = CurrentTime <$> (toGen $ randomTime)
