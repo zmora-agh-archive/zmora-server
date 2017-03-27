@@ -11,11 +11,7 @@
 
 module Models where
 
-import Control.Lens
-import Data.Aeson.TH
 import Data.ByteString
-import Data.Int (Int64)
-import qualified Data.Char as C
 import Data.Text
 import Data.Time.Clock
 import Database.Persist
@@ -45,10 +41,11 @@ User json
   UniqueNick nick
   deriving Show
 
-ContestOwnership json
+ContestPassword json
   contest ContestId
   owner UserId
   joinPassword Text
+  UniquePassword contest joinPassword
   deriving Show
 
 Contest json
@@ -57,6 +54,7 @@ Contest json
   start UTCTime
   signupDuration Int
   duration Int
+  owners [User]
   deriving Show
 
 Problem json
@@ -111,17 +109,3 @@ SubmitFile
 CurrentTime json
   time UTCTime
 |]
-
-data ContestWithOwners = ContestWithOwners {
-      _contestWithOwnersContestId :: Key Contest
-    , _contestWithOwnersName :: Text
-    , _contestWithOwnersDescription :: Text
-    , _contestWithOwnersStart :: UTCTime
-    , _contestWithOwnersSignupDuration :: Int
-    , _contestWithOwnersDuration :: Int
-    , _contestWithOwnersOwners :: [User]
-  } deriving Show
-
-makeLenses ''ContestWithOwners
-deriveJSON defaultOptions{fieldLabelModifier = over _head C.toLower . Prelude.drop 18}
-           ''ContestWithOwners
