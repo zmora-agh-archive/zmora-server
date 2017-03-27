@@ -11,11 +11,15 @@
 
 module Models where
 
+import Control.Lens
+import Data.Aeson.TH
+import Data.ByteString
+import Data.Int (Int64)
+import qualified Data.Char as C
+import Data.Text
+import Data.Time.Clock
 import Database.Persist
 import Database.Persist.TH
-import Data.Text
-import Data.ByteString
-import Data.Time.Clock
 
 import Models.Group
 
@@ -104,3 +108,17 @@ SubmitFile
   contest ByteString
   deriving Show
 |]
+
+data ContestWithOwners = ContestWithOwners {
+      _contestWithOwnersContestId :: Key Contest
+    , _contestWithOwnersName :: Text
+    , _contestWithOwnersDescription :: Text
+    , _contestWithOwnersStart :: UTCTime
+    , _contestWithOwnersSignupDuration :: Int
+    , _contestWithOwnersDuration :: Int
+    , _contestWithOwnersOwners :: [User]
+  } deriving Show
+
+makeLenses ''ContestWithOwners
+deriveJSON defaultOptions{fieldLabelModifier = over _head C.toLower . Prelude.drop 18}
+           ''ContestWithOwners

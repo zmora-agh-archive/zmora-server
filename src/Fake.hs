@@ -51,6 +51,15 @@ instance Arbitrary Contest where
                               <*> randomInt (3600, 360000)
                               <*> randomInt (3600, 360000)
 
+instance Arbitrary ContestWithOwners where
+  arbitrary = ContestWithOwners <$> arbitrary
+                                <*> (toGen $ p F.sentence)
+                                <*> (toGen $ p F.paragraph)
+                                <*> (toGen $ randomTime)
+                                <*> (toGen $ randomInt (3600, 360000))
+                                <*> (toGen $ randomInt (3600, 360000))
+                                <*> arbitrary
+
 instance Arbitrary Problem where
   arbitrary = Problem <$> arbitrary
                       <*> (toGen $ p F.sentence)
