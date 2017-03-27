@@ -113,7 +113,7 @@ CurrentTime json
 |]
 
 data ContestWithOwners = ContestWithOwners {
-      _contestWithOwnersContestId :: Key Contest
+      _contestWithOwnersId :: Key Contest
     , _contestWithOwnersName :: Text
     , _contestWithOwnersDescription :: Text
     , _contestWithOwnersStart :: UTCTime
