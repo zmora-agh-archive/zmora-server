@@ -15,7 +15,13 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Api, Controller, Fake, Server, Types, Models, Models.Group
+  exposed-modules:     Api
+                     , Controller
+                     , Fake
+                     , Server
+                     , Types
+                     , Models, Models.Group
+                     , Utils, Utils.ResourceAPI
   build-depends:       base >= 4.7 && < 5
                      , aeson
                      , bytestring

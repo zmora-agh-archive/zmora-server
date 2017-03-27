@@ -1,12 +1,9 @@
-{-# LANGUAGE FlexibleContexts          #-}
-{-# LANGUAGE FlexibleInstances         #-}
-{-# LANGUAGE MultiParamTypeClasses     #-}
-{-# LANGUAGE NoMonomorphismRestriction #-}
-{-# LANGUAGE OverloadedStrings         #-}
-{-# LANGUAGE TemplateHaskell           #-}
-{-# LANGUAGE TypeFamilies              #-}
-{-# LANGUAGE TypeOperators             #-}
-{-# LANGUAGE TypeSynonymInstances      #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE TemplateHaskell       #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
 
 module Controller where
 
@@ -36,14 +33,40 @@ runQuery query = do
   pool <- asks db
   runDb pool ErrDatabaseQuery query
 
-resAll :: (PersistEntityBackend record ~ SqlBackend, PersistEntity record)
-       => HandlerT IO [Entity record]
-resAll = runQuery $ selectList [] []
-
-resById :: ToBackendKey SqlBackend record => Int64 -> HandlerT IO record
-resById id = do
+getById id = do
   q <- runQuery $ get (toSqlKey id)
   maybe (throwError ErrNotFound) pure q
 
+class HasController a where
+  resourceController :: a
+
+instance (HasController a, HasController b) => HasController (a :<|> b) where
+  resourceController = resourceController :<|> resourceController
+
+instance ( PersistEntityBackend a ~ SqlBackend
+         , PersistEntity a
+         ) => HasController (HandlerT IO [Entity a]) where
+  resourceController = runQuery $ selectList [] []
+
+instance HasController (Int64 -> HandlerT IO User) where
+  resourceController = getById
+instance HasController (Int64 -> HandlerT IO Contest) where
+  resourceController = getById
+
+instance HasController (Int64 -> HandlerT IO [Entity ContestProblem]) where
+  resourceController contestId = undefined -- TODO
+instance HasController (Int64 -> Int64 -> HandlerT IO ContestProblem) where
+  resourceController contestId problemId = undefined -- TODO
+
+instance HasController (Int64 -> Int64 -> HandlerT IO [Entity ProblemExample]) where
+  resourceController contestId problemId = undefined -- TODO
+instance HasController (Int64 -> Int64 -> HandlerT IO [Entity Question]) where
+  resourceController contestId problemId = undefined -- TODO
+
+instance HasController (Int64 -> Int64 -> HandlerT IO [Entity Submit]) where
+  resourceController contestId problemId = undefined -- TODO
+instance HasController (Int64 -> Int64 -> Int64 -> HandlerT IO Submit) where
+  resourceController contestId problemId submitId = undefined -- TODO
+
 controller :: ServerT API (HandlerT IO)
-controller = undefined -- FIXME
+controller = resourceController

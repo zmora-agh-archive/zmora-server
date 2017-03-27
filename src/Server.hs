@@ -47,8 +47,8 @@ startApp = do
                                     }
   let dbSettings = "host=localhost port=5432 user=zmora dbname=zmora password=szatan"
 
-  withStdoutLogger $ \apacheLogger -> do
-    withLogger logSettings $ \logger -> do
+  withStdoutLogger $ \apacheLogger ->
+    withLogger logSettings $ \logger ->
       withPostgresqlPool dbSettings 1 $ \pool -> do
         runSqlPool (runMigration migrateAll) pool
         let settings = setPort 8080 $ setLogger apacheLogger defaultSettings
