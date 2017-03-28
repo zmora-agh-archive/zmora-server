@@ -18,7 +18,9 @@ type API = ResourceAPI '[
     Resource "time" '[Get '[JSON] CurrentTime] '[]
   , Resource "users" (StdActions User) '[]
   , Resource "contests" (StdActions Contest) '[
-      Resource "problems" (StdActions ContestProblem) '[
+      Resource "problems" '[ Get '[JSON] [ContestProblem]
+                           , Capture "id" Int64 :> Get '[JSON] ContestProblem
+                           ] '[
           Resource "examples"  '[Get '[JSON] [Entity ProblemExample]] '[]
         , Resource "questions" '[Get '[JSON] [Entity Question]] '[]
         , Resource "submits" (StdActions Submit) '[]

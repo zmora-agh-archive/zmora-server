@@ -11,6 +11,7 @@ import Servant
 import Diener
 import Control.Monad.IO.Class (liftIO)
 import Control.Exception.Lifted (SomeException (..), catch)
+-- import Database.Esqueleto
 import Database.Persist
 import Database.Persist.Postgresql
 import Data.Monoid ((<>))
@@ -29,7 +30,7 @@ runDb pool err q =
     $logError $ "Error: " <> (T.pack . show) e
     throwError err
 
-runQuery :: SqlPersistT (HandlerT IO) a -> HandlerT IO a
+-- runQuery :: SqlPersistT (HandlerT IO) a -> HandlerT IO a
 runQuery query = do
   pool <- asks db
   runDb pool ErrDatabaseQuery query
@@ -50,15 +51,17 @@ instance ( PersistEntityBackend a ~ SqlBackend
   resourceController = runQuery $ selectList [] []
 
 instance HasController (HandlerT IO CurrentTime) where
-  resourceController = liftIO $ getCurrentTime
+  resourceController = liftIO getCurrentTime
 
 instance HasController (Int64 -> HandlerT IO User) where
   resourceController = getById
 instance HasController (Int64 -> HandlerT IO Contest) where
   resourceController = getById
 
-instance HasController (Int64 -> HandlerT IO [Entity ContestProblem]) where
-  resourceController contestId = undefined -- TODO
+instance HasController (Int64 -> HandlerT IO [ContestProblem]) where
+  resourceController contestId = runQuery $ fmap entityVal <$>
+    selectList [ContestProblemContest ==. toSqlKey contestId] []
+
 instance HasController (Int64 -> Int64 -> HandlerT IO ContestProblem) where
   resourceController contestId problemId = undefined -- TODO
 

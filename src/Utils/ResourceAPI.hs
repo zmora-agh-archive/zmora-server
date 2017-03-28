@@ -11,7 +11,7 @@ import Data.Int (Int64(..))
 
 data Resource :: Symbol -> [*] -> [*] -> *
 
-type family (++) (as :: [k]) (bs :: [k]) :: [k] where
+type family (++) as bs where
   (++) a '[] = a
   (++) '[] b = b
   (++) (a ': as) bs = a ': (as ++ bs)

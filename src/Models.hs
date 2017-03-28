@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GADTs                      #-}
@@ -20,8 +21,9 @@ import Data.Time.Clock as T
 
 import Models.Group
 import Utils.AesonTrim
+import Utils.ExtensibleRecords
 
-data CurrentTime = CurrentTime { _CurrentTimeTime :: UTCTime }
+newtype CurrentTime = CurrentTime { _CurrentTimeTime :: UTCTime }
 makeLenses ''CurrentTime
 deriveJSON (defaultOptionsWithTrim "_CurrentTime") ''CurrentTime
 
@@ -32,12 +34,13 @@ getCurrentTime = CurrentTime <$> T.getCurrentTime
 share
   [ mkPersist sqlSettings { mpsGenerateLenses = True }
   , mkMigrate "migrateAll"
+  , mkExtensibleRecords
   ] [persistLowerCase|
 Credential
   email Text
   salt ByteString
   hash ByteString
-  user User
+  user UserId
   group Group
   UniqueEmail email
   UniqueUser user
@@ -87,7 +90,7 @@ ContestParticipation json
 ContestProblem json
   shortcode Text
   contest ContestId
-  problem Problem
+  problem ProblemId
   UniqueProblem contest problem
   UniqueShortcode contest shortcode
   deriving Show
@@ -96,7 +99,7 @@ Question json
   problem ContestProblemId
   author UserId
   question Text
-  answer Answer Maybe
+  answer AnswerId Maybe
 
 Answer json
   author UserId
