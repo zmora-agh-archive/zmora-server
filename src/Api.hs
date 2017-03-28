@@ -15,7 +15,8 @@ type StdActions a = '[ Get '[JSON] [Entity a]
                      ]
 
 type API = ResourceAPI '[
-    Resource "users" (StdActions User) '[]
+    Resource "time" '[Get '[JSON] CurrentTime] '[]
+  , Resource "users" (StdActions User) '[]
   , Resource "contests" (StdActions Contest) '[
       Resource "problems" (StdActions ContestProblem) '[
           Resource "examples"  '[Get '[JSON] [Entity ProblemExample]] '[]

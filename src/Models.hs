@@ -10,13 +10,24 @@
 
 module Models where
 
+import Control.Lens
+import Data.Aeson.TH
 import Database.Persist
 import Database.Persist.TH
 import Data.Text
 import Data.ByteString
-import Data.Time.Clock
+import Data.Time.Clock as T
 
 import Models.Group
+import Utils.AesonTrim
+
+data CurrentTime = CurrentTime { _CurrentTimeTime :: UTCTime }
+makeLenses ''CurrentTime
+deriveJSON (defaultOptionsWithTrim "_CurrentTime") ''CurrentTime
+
+-- Important notice: All nodes must have timezone set to UTC
+getCurrentTime :: IO CurrentTime
+getCurrentTime = CurrentTime <$> T.getCurrentTime
 
 share
   [ mkPersist sqlSettings { mpsGenerateLenses = True }

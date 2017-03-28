@@ -9,6 +9,7 @@ module Controller where
 
 import Servant
 import Diener
+import Control.Monad.IO.Class (liftIO)
 import Control.Exception.Lifted (SomeException (..), catch)
 import Database.Persist
 import Database.Persist.Postgresql
@@ -47,6 +48,9 @@ instance ( PersistEntityBackend a ~ SqlBackend
          , PersistEntity a
          ) => HasController (HandlerT IO [Entity a]) where
   resourceController = runQuery $ selectList [] []
+
+instance HasController (HandlerT IO CurrentTime) where
+  resourceController = liftIO $ getCurrentTime
 
 instance HasController (Int64 -> HandlerT IO User) where
   resourceController = getById
