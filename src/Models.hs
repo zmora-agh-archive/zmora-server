@@ -117,3 +117,6 @@ SubmitFile
   contest ByteString
   deriving Show
 |]
+
+testRec :: UserRec
+testRec = "korri" :& "konrad" :& "testowo" :& "Coś" :& RNil

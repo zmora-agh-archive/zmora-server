@@ -28,10 +28,6 @@ import GHC.Types
 import Language.Haskell.TH
 
 data RecField :: Symbol -> a -> * where
-  RecField :: a -> RecField name a
-
-instance Show a => Show (RecField name a) where
-  show (RecField a) = show a
 
 data Rec :: [*] -> * where
   (:&) :: !a -> !(Rec as) -> Rec (RecField name a ': as)
@@ -47,6 +43,33 @@ type family (:%) rec field where
   Rec (x ': xs)               :% b                 = Rec (x ': UnRec (Rec xs :% b))
 
 infixr 7 :%
+
+class RecGetProp name a b | name a -> b where
+  rGet :: Proxy name -> Rec a -> b
+
+class RecSetProp name x a where
+  rSet :: Proxy name -> x -> Rec a -> Rec a :% RecField name x
+
+instance RecGetProp name (RecField name a ': as) a where
+  rGet _   (a :& _)  = a
+
+instance RecSetProp name x (RecField name a ': as) where
+  rSet _ x (a :& as) = x :& as
+
+instance {-# OVERLAPS #-} RecGetProp n1 as b => RecGetProp n1 (RecField n2 a ': as) b where
+  rGet p (_ :& as) = rGet p as
+
+instance {-# OVERLAPS #-}
+         ( RecSetProp n1 x as
+         , RecField n2 a ~ orig, RecField n1 x ~ sub
+         , (Rec (orig : as) :% sub) ~ Rec (orig : UnRec (Rec as :% sub))
+         , (Rec as :% sub) ~ Rec (UnRec (Rec as :% sub))
+         ) => RecSetProp n1 x (RecField n2 a ': as) where
+  rSet p x (a :& as) = a :& rSet p x as
+
+rOver :: (RecSetProp name x a, RecGetProp name a t)
+      => Proxy name -> (t -> x) -> Rec a -> Rec a :% RecField name x
+rOver p f rec = rSet p (f (rGet p rec)) rec
 
 instance Show (Rec '[]) where
   show RNil = "[]"
