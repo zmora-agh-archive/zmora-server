@@ -8,13 +8,21 @@
 {-# LANGUAGE QuasiQuotes                #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE TypeOperators              #-}
+{-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE UndecidableInstances       #-}
 
 module Models where
 
 import Control.Lens
+import Data.Aeson
+import Data.Hashable
+import Data.Hashable.Time
+import GHC.Generics
 import Data.Aeson.TH
 import Database.Persist
 import Database.Persist.TH
+import Database.Persist.Sql
 import Data.Text
 import Data.ByteString
 import Data.Time.Clock as T
@@ -67,6 +75,8 @@ Contest json
   signupDuration Int
   duration Int
   deriving Show
+  deriving Eq
+  deriving Generic
 
 Problem json
   author UserId
@@ -117,3 +127,19 @@ SubmitFile
   contest ByteString
   deriving Show
 |]
+
+newtype ContestWithOwners = ContestWithOwners {
+  unContestWithOwners ::  AsRec Contest
+                       :+ RecField "id" (Key Contest)
+                       :+ RecField "owners" [User]
+}
+
+instance ToJSON ContestWithOwners where
+  toJSON = toJSON . unContestWithOwners
+
+instance ( ToBackendKey SqlBackend a, Hashable a
+         ) => Hashable (Entity a) where
+  hashWithSalt salt (Entity k v) =
+    salt `hashWithSalt` (fromSqlKey k) `hashWithSalt` v
+
+instance Hashable Contest

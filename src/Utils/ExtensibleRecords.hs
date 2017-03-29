@@ -11,6 +11,7 @@
 {-# LANGUAGE UndecidableInstances   #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE TemplateHaskell        #-}
+{-# LANGUAGE TypeFamilyDependencies #-}
 
 module Utils.ExtensibleRecords where
 
@@ -44,8 +45,11 @@ type family (:%) rec field where
   Rec '[]                     :% _                 = Rec '[]
   Rec (RecField name a ': xs) :% (RecField name b) = Rec (RecField name b ': xs)
   Rec (x ': xs)               :% b                 = Rec (x ': UnRec (Rec xs :% b))
-
 infixr 7 :%
+
+type family (:+) rec field where
+  Rec x :+ a = Rec (a ': x)
+infixl 6 :+
 
 class RecGetProp name a b | name a -> b where
   rGet :: Proxy name -> Rec a -> b
@@ -82,8 +86,8 @@ instance ( Show a, Show (Rec as)
   show (x :& xs) = show x ++ " : " ++ show xs
 
 class RecExplode m where
-  type AsRec m
-  explode :: (AsRec m ~ Rec k) => m -> AsRec m
+  type AsRec m = r | r -> m
+  explode :: AsRec m ~ Rec rec => m -> AsRec m
 
 instance ToJSON (Rec '[]) where
     toJSON RNil = emptyObject

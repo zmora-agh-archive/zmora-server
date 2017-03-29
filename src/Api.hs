@@ -8,6 +8,7 @@ import Database.Persist (Entity(..))
 import Servant
 
 import Utils.ResourceAPI
+import Utils.ExtensibleRecords
 import Models
 
 type StdActions a = '[ Get '[JSON] [Entity a]
@@ -17,7 +18,10 @@ type StdActions a = '[ Get '[JSON] [Entity a]
 type API = ResourceAPI '[
     Resource "time" '[Get '[JSON] CurrentTime] '[]
   , Resource "users" (StdActions User) '[]
-  , Resource "contests" (StdActions Contest) '[
+  , Resource "contests" '[
+        Get '[JSON] [ContestWithOwners]
+      , Capture "id" Int64 :> Get '[JSON] Contest
+    ] '[
       Resource "problems" '[ Get '[JSON] [ContestProblem]
                            , Capture "id" Int64 :> Get '[JSON] ContestProblem
                            ] '[
