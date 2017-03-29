@@ -5,6 +5,7 @@
 {-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE PolyKinds              #-}
 {-# LANGUAGE ScopedTypeVariables    #-}
+{-# LANGUAGE QuasiQuotes            #-}
 {-# LANGUAGE TypeFamilies           #-}
 {-# LANGUAGE TypeOperators          #-}
 {-# LANGUAGE UndecidableInstances   #-}
@@ -19,6 +20,7 @@ import Data.Aeson
 import Data.Int (Int64)
 import Data.Aeson.Types
 import Data.HashMap.Strict
+import Database.Persist.Quasi (nullable)
 import Data.Proxy
 import Data.Reflection
 import Data.Text as T
@@ -26,6 +28,7 @@ import Database.Persist.Types
 import GHC.TypeLits (KnownSymbol)
 import GHC.Types
 import Language.Haskell.TH
+import Language.Haskell.TH.Syntax
 
 data RecField :: Symbol -> a -> * where
 
@@ -78,6 +81,9 @@ instance ( Show a, Show (Rec as)
          ) => Show (Rec (RecField name a : as)) where
   show (x :& xs) = show x ++ " : " ++ show xs
 
+class RecExplode m where
+  type AsRec m
+  explode :: (AsRec m ~ Rec k) => m -> AsRec m
 
 instance ToJSON (Rec '[]) where
     toJSON RNil = emptyObject
@@ -95,7 +101,7 @@ mkExtensibleRecords :: [EntityDef] -> Q [Dec]
 mkExtensibleRecords = mapM $ \def -> do
   let nameToStr = unpack . unHaskellName
       typeName = nameToStr (entityHaskell def)
-      recName = mkName (typeName ++ "Rec")
+      modelName = mkName typeName
 
       recField name typ = constructor `appT` namearg `appT` typ
         where constructor = conT (mkName "RecField")
@@ -112,9 +118,13 @@ mkExtensibleRecords = mapM $ \def -> do
                   _              -> Nothing
 
               -- Copied from Database.Persist.TH
+              maybeNullable fd = nullable (fieldAttrs fd) /= NotNullable
+
               idType :: FieldDef -> TypeQ
               idType fd = case foreignReference fd of
-                Just typ -> conT ''Key `appT` (conT $ mkName $ nameToStr typ)
+                Just typ -> let res = conT ''Key `appT` (conT $ mkName $ nameToStr typ)
+                            in if maybeNullable fd then conT ''Maybe `appT` res
+                                                   else res
                 Nothing -> ftToType $ fieldType fd
 
               ftToType :: FieldType -> TypeQ
@@ -125,7 +135,14 @@ mkExtensibleRecords = mapM $ \def -> do
               ftToType (FTList x) = listT `appT` ftToType x
 
       recFields = P.map fieldToRecField $ entityFields def
+      recType = appT (conT ''Rec) $ promList recFields
 
-      recType = appT (conT (mkName "Rec")) $ promList recFields
+  patArgs <- mapM (newName . nameToStr . fieldHaskell) $ entityFields def
 
-  tySynD recName [] recType
+  let buildInfix a acc = infixE (Just $ varE a) (conE '(:&)) (Just acc)
+      patBody = P.foldr buildInfix (conE 'RNil) patArgs
+
+  instanceD (return []) (appT (conT ''RecExplode) (conT modelName)) [
+        tySynInstD ''AsRec (tySynEqn [conT modelName] recType)
+      , funD 'explode [clause [conP modelName (varP <$> patArgs)] (normalB patBody) []]
+    ]
