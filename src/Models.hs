@@ -44,6 +44,9 @@ instance ( ToBackendKey SqlBackend a, Hashable a
   hashWithSalt salt (Entity k v) =
     salt `hashWithSalt` fromSqlKey k `hashWithSalt` v
 
+instance ToBackendKey SqlBackend a => Hashable (Key a) where
+  hashWithSalt salt k = salt `hashWithSalt` fromSqlKey k
+
 share
   [ mkPersist sqlSettings { mpsGenerateLenses = True }
   , mkMigrate "migrateAll"
@@ -65,6 +68,8 @@ User json
   about Text
   UniqueNick nick
   deriving Show
+  deriving Eq
+  deriving Generic
 
 UserAvatar
   user UserId
@@ -117,6 +122,7 @@ ContestProblem json
   UniqueProblem contest problem
   UniqueShortcode contest shortcode
   deriving Show
+  deriving Generic
 
 Question json
   problem ContestProblemId
@@ -124,12 +130,15 @@ Question json
   question Text
   asked UTCTime
   deriving Show
+  deriving Eq
+  deriving Generic
 
 Answer json
   question QuestionId
   author UserId
   answered UTCTime
   answer Text
+  UniqueAnswer question author
   deriving Show
 
 Submit json
@@ -145,7 +154,10 @@ SubmitFile
   deriving Show
 |]
 
+instance Hashable User
 instance Hashable Contest
+instance Hashable ContestProblem
+instance Hashable Question
 
 --
 -- Model derivates
@@ -189,16 +201,19 @@ instance ToJSON ProblemExampleWithoutProblem where
   toJSON = toJSON . _problemExampleWithoutProblemId
 
 newtype QuestionWithAnswers = QuestionWithAnswers {
-  _questionWithAnswers :: AsRec Question
-                       :% "answer" :-> [AnswerWithoutQuestion]
-                       :- "problem"
+  _questionWithAnswers ::  AsRec Question
+                        :% "author" :-> User
+                        :+ "answers" :-> [AnswerWithoutQuestion]
+                        :- "problem"
 } deriving Show
 
 instance ToJSON QuestionWithAnswers where
   toJSON = toJSON . _questionWithAnswers
 
 newtype AnswerWithoutQuestion = AnswerWithoutQuestion {
-  _answerWithoutQuestion :: AsRec Answer :- "question"
+  _answerWithoutQuestion ::  AsRec Answer
+                          :% "author" :-> User
+                          :- "question"
 } deriving Show
 
 instance ToJSON AnswerWithoutQuestion where

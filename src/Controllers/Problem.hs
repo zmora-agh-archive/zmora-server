@@ -7,6 +7,7 @@ module Controllers.Problem where
 
 import Database.Esqueleto
 import qualified Database.Persist as P
+import Data.Maybe (catMaybes)
 
 import Utils.Controller
 import Utils.ExtensibleRecords
@@ -20,7 +21,7 @@ instance HasController (Int64 -> HandlerT IO [ExpandedContestProblem]) where
                 orderBy [ asc (cp ^. ContestProblemShortcode) ]
                 return (cp, prob)
           cmerge (cp, p) =
-            ExpandedContestProblem $ Ext (Var :: Var "id") (entityKey cp)
+            ExpandedContestProblem $ rAdd (Var :: Var "id") (entityKey cp)
                                    $ rDel (Var :: Var "contest")
                                    $ rSet (Var :: Var "problem") (entityVal p)
                                    $ explode (entityVal cp)
@@ -44,15 +45,30 @@ instance HasController (Int64 -> Int64 -> HandlerT IO [ProblemExampleWithoutProb
                                                  $ rDel (Var :: Var "number")
                                                  $ explode (entityVal a)
 
--- TODO
+-- TODO Check if join types are correct
 instance HasController (Int64 -> Int64 -> HandlerT IO [QuestionWithAnswers]) where
-  resourceController = undefined
-  -- resourceController _ problemId = fmap trans <$> runQuery q
-  --   where q = select $ from $ \(que `LeftJoin` ans) -> do
-  --               on     $ ans ^. AnswerQuestion ==. que ^. QuestionId
-  --               where_ $ que ^. QuestionContest ==. val (toSqlKey contestId)
-  --               orderBy [ asc (cp ^. ContestProblemShortcode) ]
-  --               return (cp, prob)
-  --         trans a = QuestionWithAnswer $ rDel (Var :: Var "problem")
-  --                                      $ explode (entityVal a)
+  resourceController _ problemId = (fmap trans . collectionJoin) <$> runQuery q
+    where q = select $ from $ \(cp `RightOuterJoin` que `LeftOuterJoin` ans `InnerJoin` aaut `InnerJoin` qaut) -> do
+                on     $ que ^. QuestionAuthor ==. qaut ^. UserId
+                on     $ ans ?. AnswerAuthor ==. just (aaut ^. UserId)
+                on     $ ans ?. AnswerQuestion ==. just (que ^. QuestionId)
+                on     $ cp  ^. ContestProblemId ==. que ^. QuestionProblem
+                where_ $ cp ^. ContestProblemId ==. val (toSqlKey problemId)
+                orderBy [ asc (que ^. QuestionAsked) ]
+                return ((que, qaut), (ans, aaut))
 
+          -- TODO Replace with oneliner
+          transMaybes :: [(Maybe a, b)] -> [(a, b)]
+          transMaybes ((Just a, b) : xs) = (a, b) : transMaybes xs
+          transMaybes (_ : xs) = transMaybes xs
+          transMaybes [] = []
+
+          trans ((que, qaut), ans) = QuestionWithAnswers
+            $ rAdd (Var :: Var "answers") (trans' <$> transMaybes ans)
+            $ rDel (Var :: Var "problem")
+            $ rSet (Var :: Var "author") (entityVal qaut)
+            $ explode (entityVal que)
+
+          trans' (ans, aaut) = AnswerWithoutQuestion $ rDel (Var :: Var "question")
+                                                     $ rSet (Var :: Var "author") (entityVal aaut)
+                                                     $ explode (entityVal ans)

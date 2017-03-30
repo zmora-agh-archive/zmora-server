@@ -59,6 +59,9 @@ type family (:-) rec field where
   Rec (x ': xs) :- b = Rec (x ': UnRec (Rec xs :- b))
 infixl 3 :-
 
+rAdd :: Var name -> a -> Rec as -> Rec ((name :-> a) ': as)
+rAdd = Ext
+
 class RecGetProp name a b | name a -> b where
   rGet :: Var name -> Rec a -> b
 
