@@ -140,6 +140,6 @@ instance ToJSON ContestWithOwners where
 instance ( ToBackendKey SqlBackend a, Hashable a
          ) => Hashable (Entity a) where
   hashWithSalt salt (Entity k v) =
-    salt `hashWithSalt` (fromSqlKey k) `hashWithSalt` v
+    salt `hashWithSalt` fromSqlKey k `hashWithSalt` v
 
 instance Hashable Contest

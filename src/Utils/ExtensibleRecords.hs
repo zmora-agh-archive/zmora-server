@@ -31,7 +31,7 @@ import GHC.Types
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax
 
-data RecField :: Symbol -> a -> * where
+data RecField :: Symbol -> a -> *
 
 data Rec :: [*] -> * where
   (:&) :: !a -> !(Rec as) -> Rec (RecField name a ': as)
@@ -42,9 +42,9 @@ type family UnRec r where
   UnRec (Rec a) = a
 
 type family (:%) rec field where
-  Rec '[]                     :% _                 = Rec '[]
-  Rec (RecField name a ': xs) :% (RecField name b) = Rec (RecField name b ': xs)
-  Rec (x ': xs)               :% b                 = Rec (x ': UnRec (Rec xs :% b))
+  Rec '[]                     :% _               = Rec '[]
+  Rec (RecField name a ': xs) :% RecField name b = Rec (RecField name b ': xs)
+  Rec (x ': xs)               :% b               = Rec (x ': UnRec (Rec xs :% b))
 infixr 7 :%
 
 type family (:+) rec field where
@@ -97,7 +97,7 @@ instance ToJSON (Rec '[]) where
 --
 instance ( ToJSON a, ToJSON (Rec as), KnownSymbol name
          ) => ToJSON (Rec (RecField name a : as)) where
-    toJSON (x :& xs) = object $ [property] ++ extractObj (toJSON xs)
+    toJSON (x :& xs) = object $ property : extractObj (toJSON xs)
       where property = pack (reflect (Proxy :: Proxy name)) .= toJSON x
             extractObj (Object l) = toList l
 
@@ -111,8 +111,7 @@ mkExtensibleRecords = mapM $ \def -> do
         where constructor = conT (mkName "RecField")
               namearg = litT (strTyLit name)
 
-      promList [] = promotedNilT
-      promList (x:xs) = promotedConsT `appT` x `appT` (promList xs)
+      promList = P.foldr (\x -> appT (promotedConsT `appT` x)) promotedNilT
 
       fieldToRecField x = recField (nameToStr $ fieldHaskell x) $ idType x
         where typeName (FTTypeCon _ a) = unpack a
@@ -126,7 +125,7 @@ mkExtensibleRecords = mapM $ \def -> do
 
               idType :: FieldDef -> TypeQ
               idType fd = case foreignReference fd of
-                Just typ -> let res = conT ''Key `appT` (conT $ mkName $ nameToStr typ)
+                Just typ -> let res = conT ''Key `appT` conT (mkName $ nameToStr typ)
                             in if maybeNullable fd then conT ''Maybe `appT` res
                                                    else res
                 Nothing -> ftToType $ fieldType fd

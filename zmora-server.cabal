@@ -21,7 +21,16 @@ library
                      , Server
                      , Types
                      , Models, Models.Group
-                     , Utils.ResourceAPI, Utils.AesonTrim, Utils.ExtensibleRecords
+                     , Utils.ResourceAPI
+                     , Utils.AesonTrim
+                     , Utils.ExtensibleRecords
+                     , Utils.Controller
+                     , Controllers.Contest
+                     , Controllers.Problem
+                     , Controllers.Submit
+                     , Controllers.Time
+                     , Controllers.User
+
   build-depends:       base >= 4.7 && < 5
                      , aeson
                      , bytestring
