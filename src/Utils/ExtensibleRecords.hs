@@ -48,11 +48,16 @@ type family (:%) rec field where
   Rec '[]                  :% _            = Rec '[]
   Rec ((name :-> a) ': xs) :% (name :-> b) = Rec ((name :-> b) ': xs)
   Rec (x ': xs)            :% b            = Rec (x ': UnRec (Rec xs :% b))
-infixr 3 :%
+infixl 3 :%
 
 type family (:+) rec field where
   Rec x :+ a = Rec (a ': x)
 infixl 3 :+
+
+type family (:-) rec field where
+  Rec ((name :-> a) ': xs) :- name = Rec xs
+  Rec (x ': xs) :- b = Rec (x ': UnRec (Rec xs :- b))
+infixl 3 :-
 
 class RecGetProp name a b | name a -> b where
   rGet :: Var name -> Rec a -> b
@@ -60,11 +65,17 @@ class RecGetProp name a b | name a -> b where
 class RecSetProp name x a where
   rSet :: Var name -> x -> Rec a -> Rec a :% name :-> x
 
+class RecDelProp name a where
+  rDel :: Var name -> Rec a -> Rec a :- name
+
 instance RecGetProp name ((name :-> a) ': as) a where
   rGet _   (Ext k v s)  = v
 
 instance RecSetProp name x ((name :-> a) ': as) where
   rSet _ x (Ext k _ s) = Ext k x s
+
+instance RecDelProp name ((name :-> a) ': as) where
+  rDel _ (Ext _ _ s) = s
 
 instance {-# OVERLAPS #-} RecGetProp n1 as b => RecGetProp n1 ((n2 :-> a) ': as) b where
   rGet p (Ext _ _ s) = rGet p s
@@ -76,6 +87,14 @@ instance {-# OVERLAPS #-}
          , (Rec as :% sub) ~ Rec (UnRec (Rec as :% sub))
          ) => RecSetProp n1 x ((n2 :-> a) ': as) where
   rSet p x (Ext k v s) = Ext k v (rSet p x s)
+
+instance {-# OVERLAPS #-}
+         ( RecDelProp n1 as
+         , (n2 :-> a) ~ orig
+         , (Rec (orig : as) :- n1) ~ Rec (orig : UnRec (Rec as :- n1))
+         , (Rec as :- n1) ~ Rec (UnRec (Rec as :- n1))
+         ) => RecDelProp n1 ((n2 :-> a) ': as) where
+  rDel p (Ext a b s) = Ext a b (rDel p s)
 
 rOver :: (RecSetProp name x a, RecGetProp name a t)
       => Var name -> (t -> x) -> Rec a -> Rec a :% name :-> x

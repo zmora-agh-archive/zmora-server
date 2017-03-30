@@ -19,6 +19,7 @@ import Data.Monoid ((<>))
 import Control.Exception.Lifted (SomeException (..), catch)
 import Database.Persist
 import Database.Persist.Postgresql
+import qualified Database.Esqueleto as E
 import qualified Data.Hashable as HM
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Text as T (pack)
@@ -47,6 +48,12 @@ runDb pool err q =
 runQuery query = do
   pool <- asks db
   runDb pool ErrDatabaseQuery query
+
+selectOne a = do
+  a <- E.select a
+  let safeHead []     = Nothing
+      safeHead (a:as) = Just a
+  maybe (throwError ErrNotFound) pure (safeHead a)
 
 getAll :: (PersistEntityBackend a ~ SqlBackend, PersistEntity a)
        => HandlerT IO [Entity a]

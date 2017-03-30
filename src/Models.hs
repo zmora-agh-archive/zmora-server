@@ -39,6 +39,11 @@ deriveJSON (defaultOptionsWithTrim "_CurrentTime") ''CurrentTime
 getCurrentTime :: IO CurrentTime
 getCurrentTime = CurrentTime <$> T.getCurrentTime
 
+instance ( ToBackendKey SqlBackend a, Hashable a
+         ) => Hashable (Entity a) where
+  hashWithSalt salt (Entity k v) =
+    salt `hashWithSalt` fromSqlKey k `hashWithSalt` v
+
 share
   [ mkPersist sqlSettings { mpsGenerateLenses = True }
   , mkMigrate "migrateAll"
@@ -93,6 +98,7 @@ Problem json
 
 ProblemExample json
   problem ProblemId
+  number Int
   input Text
   result Text
   explanation Text
@@ -116,11 +122,15 @@ Question json
   problem ContestProblemId
   author UserId
   question Text
-  answer AnswerId Maybe
+  asked UTCTime
+  deriving Show
 
 Answer json
+  question QuestionId
   author UserId
+  answered UTCTime
   answer Text
+  deriving Show
 
 Submit json
   problem ContestProblemId
@@ -134,6 +144,12 @@ SubmitFile
   contest ByteString
   deriving Show
 |]
+
+instance Hashable Contest
+
+--
+-- Model derivates
+--
 
 newtype ContestWithOwners = ContestWithOwners {
   _contestWithOwners ::  AsRec Contest
@@ -153,9 +169,37 @@ newtype UserRegistration = UserRegistration {
 instance FromJSON UserRegistration where
   parseJSON ov = UserRegistration <$> parseJSON ov
 
-instance ( ToBackendKey SqlBackend a, Hashable a
-         ) => Hashable (Entity a) where
-  hashWithSalt salt (Entity k v) =
-    salt `hashWithSalt` fromSqlKey k `hashWithSalt` v
+newtype ExpandedContestProblem = ExpandedContestProblem {
+  _expandedContestProblem ::  AsRec ContestProblem
+                           :% "problem" :-> Problem
+                           :+ "id" :-> Key ContestProblem
+                           :- "contest"
+} deriving Show
 
-instance Hashable Contest
+instance ToJSON ExpandedContestProblem where
+  toJSON = toJSON . _expandedContestProblem
+
+newtype ProblemExampleWithoutProblem = ProblemExampleWithoutProblem {
+  _problemExampleWithoutProblemId :: AsRec ProblemExample
+                                   :- "problem"
+                                   :- "number"
+} deriving Show
+
+instance ToJSON ProblemExampleWithoutProblem where
+  toJSON = toJSON . _problemExampleWithoutProblemId
+
+newtype QuestionWithAnswers = QuestionWithAnswers {
+  _questionWithAnswers :: AsRec Question
+                       :% "answer" :-> [AnswerWithoutQuestion]
+                       :- "problem"
+} deriving Show
+
+instance ToJSON QuestionWithAnswers where
+  toJSON = toJSON . _questionWithAnswers
+
+newtype AnswerWithoutQuestion = AnswerWithoutQuestion {
+  _answerWithoutQuestion :: AsRec Answer :- "question"
+} deriving Show
+
+instance ToJSON AnswerWithoutQuestion where
+  toJSON = toJSON . _answerWithoutQuestion

@@ -18,17 +18,18 @@ type StdActions a = '[ Get '[JSON] [Entity a]
 type API = ResourceAPI '[
     Resource "time" '[Get '[JSON] CurrentTime] '[]
   , Resource "users" '[
-      ReqBody '[JSON] UserRegistration :> Post '[JSON] (Key User)
+        Capture "id" Int64 :> Get '[JSON] User
+      , ReqBody '[JSON] UserRegistration :> Post '[JSON] (Key User)
     ] '[]
   , Resource "contests" '[
         Get '[JSON] [ContestWithOwners]
       , Capture "id" Int64 :> Get '[JSON] Contest
     ] '[
-      Resource "problems" '[ Get '[JSON] [ContestProblem]
-                           , Capture "id" Int64 :> Get '[JSON] ContestProblem
+      Resource "problems" '[ Get '[JSON] [ExpandedContestProblem]
+                           , Capture "id" Int64 :> Get '[JSON] Problem
                            ] '[
-          Resource "examples"  '[Get '[JSON] [Entity ProblemExample]] '[]
-        , Resource "questions" '[Get '[JSON] [Entity Question]] '[]
+          Resource "examples"  '[Get '[JSON] [ProblemExampleWithoutProblem]] '[]
+        , Resource "questions" '[Get '[JSON] [QuestionWithAnswers]] '[]
         , Resource "submits" (StdActions Submit) '[]
       ]
     ]
