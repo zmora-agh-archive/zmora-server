@@ -137,7 +137,7 @@ SubmitFile
 
 newtype ContestWithOwners = ContestWithOwners {
   _contestWithOwners ::  AsRec Contest
-                      :+ "id" :-> (Key Contest)
+                      :+ "id" :-> Key Contest
                       :+ "owners" :-> [User]
 } deriving Show
 
@@ -159,13 +159,3 @@ instance ( ToBackendKey SqlBackend a, Hashable a
     salt `hashWithSalt` fromSqlKey k `hashWithSalt` v
 
 instance Hashable Contest
-
--- TODO TemplateHaskell this boilerplate
-instance RecImplode User where
-  type ImplCtx User a = ( RecGetProp "nick" a Text
-                        , RecGetProp "name" a Text
-                        , RecGetProp "about" a Text
-                        )
-  implode = User <$> rGet (Var :: Var "nick")
-                 <*> rGet (Var :: Var "name")
-                 <*> rGet (Var :: Var "about")

@@ -27,9 +27,7 @@ instance HasController (UserRegistration -> HandlerT IO (Key User)) where
       return (getSalt s, getHash h)
 
     -- TODO Make sure that this happens in a single transaction
-    id <- runQuery $ do
+    runQuery $ do
       uid <- insert (implode reg :: User)
       insert $ Credential email salt hash uid G.UserGroup
       return uid
-
-    return id

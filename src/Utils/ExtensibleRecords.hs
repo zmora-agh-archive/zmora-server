@@ -20,13 +20,15 @@ module Utils.ExtensibleRecords
 
 import Prelude as P
 
-import Control.Monad (mzero, mplus)
+import Control.Monad
 import Data.Aeson
 import Data.Int (Int64)
+import qualified Data.List as P (foldl')
 import Data.Aeson.Types
 import Data.HashMap.Strict as HM
 import Database.Persist.Quasi (nullable)
 import Data.Proxy
+import Data.Maybe
 import Data.Reflection
 import Data.Text as T
 import Database.Persist.Types
@@ -112,7 +114,7 @@ instance ( FromJSON (Rec as), FromJSON a, KnownSymbol name
       Error _   -> mzero
 
 mkExtensibleRecords :: [EntityDef] -> Q [Dec]
-mkExtensibleRecords = mapM $ \def -> do
+mkExtensibleRecords rec = fmap P.concat $ forM rec $ \def -> do
   let nameToStr = unpack . unHaskellName
       typeName = nameToStr (entityHaskell def)
       modelName = mkName typeName
@@ -157,7 +159,21 @@ mkExtensibleRecords = mapM $ \def -> do
   let buildRecord (fn, tn) = appE (appE (appE (conE 'Ext) (sigE (conE 'Var) (appT (conT ''Var) (litT (strTyLit fn))))) (varE tn))
       patBody = P.foldr buildRecord (conE 'Empty) (P.zip fieldNames patArgs)
 
-  instanceD (return []) (appT (conT ''RecExplode) (conT modelName)) [
+  explInst <- instanceD (return []) (appT (conT ''RecExplode) (conT modelName)) [
         tySynInstD ''AsRec (tySynEqn [conT modelName] recType)
       , funD 'explode [clause [conP modelName (varP <$> patArgs)] (normalB patBody) []]
     ]
+
+  nam1 <- newName "a"
+  let ctxTuple = P.foldl' ctxElem (tupleT (P.length fieldNames)) $ P.zip fieldNames fieldTypes
+      ctxElem acc (nam, ty) = appT acc $ appT (appT (appT (conT ''RecGetProp) (litT $ strTyLit nam)) (varT nam1)) ty
+      rgetApp nam = appE (varE 'rGet) (sigE (conE 'Var) (appT (conT ''Var) (litT (strTyLit nam))))
+      rgetInfix acc nam = Just $ infixE acc (varE '(<*>)) (Just $ rgetApp nam)
+      implBody = P.foldl' rgetInfix (Just $ appE (varE 'pure) (conE modelName)) fieldNames
+
+  implInst <- instanceD (return []) (appT (conT ''RecImplode) (conT modelName)) [
+        tySynInstD ''ImplCtx (tySynEqn [conT modelName, varT nam1] ctxTuple)
+      , valD (varP 'implode) (normalB $ fromJust implBody) []
+    ]
+
+  return [explInst, implInst]
