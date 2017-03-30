@@ -57,15 +57,22 @@ Credential
 User json
   nick Text
   name Text
-  avatar Text
   about Text
   UniqueNick nick
+  deriving Show
+
+UserAvatar
+  user UserId
+  avatar ByteString
+  UniqueAvatar user
   deriving Show
 
 ContestOwnership json
   contest ContestId
   owner UserId
   joinPassword Text
+  UniqueOwnership contest owner
+  UniquePassword contest joinPassword
   deriving Show
 
 Contest json
@@ -138,8 +145,13 @@ instance ToJSON ContestWithOwners where
   toJSON = toJSON . _contestWithOwners
 
 newtype UserRegistration = UserRegistration {
-  _userRegistration :: User
-}
+  _userRegistration ::  AsRec User
+                     :+ "email"    :-> Text
+                     :+ "password" :-> Text
+} deriving Show
+
+instance FromJSON UserRegistration where
+  parseJSON ov = UserRegistration <$> parseJSON ov
 
 instance ( ToBackendKey SqlBackend a, Hashable a
          ) => Hashable (Entity a) where
@@ -147,3 +159,13 @@ instance ( ToBackendKey SqlBackend a, Hashable a
     salt `hashWithSalt` fromSqlKey k `hashWithSalt` v
 
 instance Hashable Contest
+
+-- TODO TemplateHaskell this boilerplate
+instance RecImplode User where
+  type ImplCtx User a = ( RecGetProp "nick" a Text
+                        , RecGetProp "name" a Text
+                        , RecGetProp "about" a Text
+                        )
+  implode = User <$> rGet (Var :: Var "nick")
+                 <*> rGet (Var :: Var "name")
+                 <*> rGet (Var :: Var "about")

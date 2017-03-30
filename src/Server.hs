@@ -13,7 +13,6 @@ import Network.Wai.Logger
 import Database.Persist.Postgresql
 
 import Servant
-import Servant.Mock
 
 import           Control.Monad.IO.Class     (liftIO)
 import           Control.Monad.Trans.Except (ExceptT, throwE)
@@ -21,7 +20,6 @@ import           Diener
 import qualified Diener.Logger          as Logger
 
 import Api
-import Fake
 import Models
 import Types
 import Controller

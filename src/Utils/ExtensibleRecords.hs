@@ -53,13 +53,13 @@ type family (:+) rec field where
 infixl 3 :+
 
 class RecGetProp name a b | name a -> b where
-  rGet :: Proxy name -> Rec a -> b
+  rGet :: Var name -> Rec a -> b
 
 class RecSetProp name x a where
-  rSet :: Proxy name -> x -> Rec a -> Rec a :% name :-> x
+  rSet :: Var name -> x -> Rec a -> Rec a :% name :-> x
 
 instance RecGetProp name ((name :-> a) ': as) a where
-  rGet _   (Ext k v s)  = undefined -- Ext k v s
+  rGet _   (Ext k v s)  = v
 
 instance RecSetProp name x ((name :-> a) ': as) where
   rSet _ x (Ext k _ s) = Ext k x s
@@ -76,12 +76,16 @@ instance {-# OVERLAPS #-}
   rSet p x (Ext k v s) = Ext k v (rSet p x s)
 
 rOver :: (RecSetProp name x a, RecGetProp name a t)
-      => Proxy name -> (t -> x) -> Rec a -> Rec a :% name :-> x
+      => Var name -> (t -> x) -> Rec a -> Rec a :% name :-> x
 rOver p f rec = rSet p (f (rGet p rec)) rec
 
 class RecExplode m where
   type AsRec m = r | r -> m
   explode :: AsRec m ~ Rec rec => m -> AsRec m
+
+class RecImplode m where
+  type ImplCtx m (a :: [Mapping Symbol *]) :: Constraint
+  implode :: ImplCtx m a => Rec a -> m
 
 instance ToJSON (Rec '[]) where
   toJSON Empty = emptyObject
