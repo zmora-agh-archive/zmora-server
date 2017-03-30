@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE DataKinds         #-}
 
 module Controllers.Contest where
 
@@ -20,7 +21,7 @@ instance HasController (HandlerT IO [ContestWithOwners]) where
               return (contests, users)
 
         enrich :: (Entity Contest, [Entity User]) -> ContestWithOwners
-        enrich (ec, eu) = ContestWithOwners $ fmap entityVal eu
-                                           :& entityKey ec
-                                           :& explode (entityVal ec)
+        enrich (ec, eu) = ContestWithOwners ( Ext (Var :: Var "owners") (fmap entityVal eu)
+                                            $ Ext (Var :: Var "id") (entityKey ec)
+                                            $ explode (entityVal ec))
     (fmap enrich . collectionJoin) <$> runQuery q

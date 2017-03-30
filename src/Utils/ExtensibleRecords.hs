@@ -13,14 +13,18 @@
 {-# LANGUAGE TemplateHaskell        #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
 
-module Utils.ExtensibleRecords where
+module Utils.ExtensibleRecords
+  ( module Utils.ExtensibleRecords
+  , module Data.Type.Map
+  ) where
 
 import Prelude as P
 
+import Control.Monad (mzero, mplus)
 import Data.Aeson
 import Data.Int (Int64)
 import Data.Aeson.Types
-import Data.HashMap.Strict
+import Data.HashMap.Strict as HM
 import Database.Persist.Quasi (nullable)
 import Data.Proxy
 import Data.Reflection
@@ -31,75 +35,77 @@ import GHC.Types
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax
 
-data RecField :: Symbol -> a -> *
+import Data.Type.Map
 
-data Rec :: [*] -> * where
-  (:&) :: !a -> !(Rec as) -> Rec (RecField name a ': as)
-  RNil :: Rec '[]
-infixr 7 :&
+type Rec = Map
 
 type family UnRec r where
   UnRec (Rec a) = a
 
 type family (:%) rec field where
-  Rec '[]                     :% _               = Rec '[]
-  Rec (RecField name a ': xs) :% RecField name b = Rec (RecField name b ': xs)
-  Rec (x ': xs)               :% b               = Rec (x ': UnRec (Rec xs :% b))
-infixr 7 :%
+  Rec '[]                  :% _            = Rec '[]
+  Rec ((name :-> a) ': xs) :% (name :-> b) = Rec ((name :-> b) ': xs)
+  Rec (x ': xs)            :% b            = Rec (x ': UnRec (Rec xs :% b))
+infixr 3 :%
 
 type family (:+) rec field where
   Rec x :+ a = Rec (a ': x)
-infixl 6 :+
+infixl 3 :+
 
 class RecGetProp name a b | name a -> b where
   rGet :: Proxy name -> Rec a -> b
 
 class RecSetProp name x a where
-  rSet :: Proxy name -> x -> Rec a -> Rec a :% RecField name x
+  rSet :: Proxy name -> x -> Rec a -> Rec a :% name :-> x
 
-instance RecGetProp name (RecField name a ': as) a where
-  rGet _   (a :& _)  = a
+instance RecGetProp name ((name :-> a) ': as) a where
+  rGet _   (Ext k v s)  = undefined -- Ext k v s
 
-instance RecSetProp name x (RecField name a ': as) where
-  rSet _ x (a :& as) = x :& as
+instance RecSetProp name x ((name :-> a) ': as) where
+  rSet _ x (Ext k _ s) = Ext k x s
 
-instance {-# OVERLAPS #-} RecGetProp n1 as b => RecGetProp n1 (RecField n2 a ': as) b where
-  rGet p (_ :& as) = rGet p as
+instance {-# OVERLAPS #-} RecGetProp n1 as b => RecGetProp n1 ((n2 :-> a) ': as) b where
+  rGet p (Ext _ _ s) = rGet p s
 
 instance {-# OVERLAPS #-}
          ( RecSetProp n1 x as
-         , RecField n2 a ~ orig, RecField n1 x ~ sub
+         , (n2 :-> a) ~ orig, (n1 :-> x) ~ sub
          , (Rec (orig : as) :% sub) ~ Rec (orig : UnRec (Rec as :% sub))
          , (Rec as :% sub) ~ Rec (UnRec (Rec as :% sub))
-         ) => RecSetProp n1 x (RecField n2 a ': as) where
-  rSet p x (a :& as) = a :& rSet p x as
+         ) => RecSetProp n1 x ((n2 :-> a) ': as) where
+  rSet p x (Ext k v s) = Ext k v (rSet p x s)
 
 rOver :: (RecSetProp name x a, RecGetProp name a t)
-      => Proxy name -> (t -> x) -> Rec a -> Rec a :% RecField name x
+      => Proxy name -> (t -> x) -> Rec a -> Rec a :% name :-> x
 rOver p f rec = rSet p (f (rGet p rec)) rec
-
-instance Show (Rec '[]) where
-  show RNil = "[]"
-
-instance ( Show a, Show (Rec as)
-         ) => Show (Rec (RecField name a : as)) where
-  show (x :& xs) = show x ++ " : " ++ show xs
 
 class RecExplode m where
   type AsRec m = r | r -> m
   explode :: AsRec m ~ Rec rec => m -> AsRec m
 
 instance ToJSON (Rec '[]) where
-    toJSON RNil = emptyObject
+  toJSON Empty = emptyObject
+
+instance FromJSON (Rec '[]) where
+  parseJSON (Object v) = if HM.null v then return Empty else mzero
 --
 -- If anyone has idea how to write family of kind :: [Constraint] -> Constraint
 -- This can be redone to avoid repacking object every time (better performance)
 --
 instance ( ToJSON a, ToJSON (Rec as), KnownSymbol name
-         ) => ToJSON (Rec (RecField name a : as)) where
-    toJSON (x :& xs) = object $ property : extractObj (toJSON xs)
-      where property = pack (reflect (Proxy :: Proxy name)) .= toJSON x
-            extractObj (Object l) = toList l
+         ) => ToJSON (Rec ((name :-> a) : as)) where
+  toJSON (Ext _ x xs) = object $ property : extractObj (toJSON xs)
+    where property = pack (reflect (Proxy :: Proxy name)) .= toJSON x
+          extractObj (Object l) = toList l
+
+instance ( FromJSON (Rec as), FromJSON a, KnownSymbol name
+         ) => FromJSON (Rec ((name :-> a) : as)) where
+  parseJSON (Object v) = do
+    let propName = pack (reflect (Proxy :: Proxy name))
+    property <- v .: propName
+    case fromJSON (Object $ delete propName v) of
+      Success a -> return $ Ext (Var :: Var name) property a
+      Error _   -> mzero
 
 mkExtensibleRecords :: [EntityDef] -> Q [Dec]
 mkExtensibleRecords = mapM $ \def -> do
@@ -108,42 +114,44 @@ mkExtensibleRecords = mapM $ \def -> do
       modelName = mkName typeName
 
       recField name typ = constructor `appT` namearg `appT` typ
-        where constructor = conT (mkName "RecField")
+        where constructor = promotedT '(:->)
               namearg = litT (strTyLit name)
 
       promList = P.foldr (\x -> appT (promotedConsT `appT` x)) promotedNilT
 
-      fieldToRecField x = recField (nameToStr $ fieldHaskell x) $ idType x
-        where typeName (FTTypeCon _ a) = unpack a
+      -- Copied from Database.Persist.TH
+      maybeNullable fd = nullable (fieldAttrs fd) /= NotNullable
 
-              foreignReference field = case fieldReference field of
-                  ForeignRef ref _ -> Just ref
-                  _              -> Nothing
+      idType :: FieldDef -> TypeQ
+      idType fd = case foreignReference fd of
+        Just typ -> let res = conT ''Key `appT` conT (mkName $ nameToStr typ)
+                    in if maybeNullable fd then conT ''Maybe `appT` res
+                                           else res
+        Nothing -> ftToType $ fieldType fd
 
-              -- Copied from Database.Persist.TH
-              maybeNullable fd = nullable (fieldAttrs fd) /= NotNullable
+      ftToType :: FieldType -> TypeQ
+      ftToType (FTTypeCon Nothing t) = conT $ mkName $ unpack t
+      ftToType (FTTypeCon (Just "Data.Int") "Int64") = conT ''Int64
+      ftToType (FTTypeCon (Just m) t) = conT $ mkName $ unpack $ T.concat [m, ".", t]
+      ftToType (FTApp x y) = ftToType x `appT` ftToType y
+      ftToType (FTList x) = listT `appT` ftToType x
 
-              idType :: FieldDef -> TypeQ
-              idType fd = case foreignReference fd of
-                Just typ -> let res = conT ''Key `appT` conT (mkName $ nameToStr typ)
-                            in if maybeNullable fd then conT ''Maybe `appT` res
-                                                   else res
-                Nothing -> ftToType $ fieldType fd
+      foreignReference field = case fieldReference field of
+        ForeignRef ref _ -> Just ref
+        _              -> Nothing
 
-              ftToType :: FieldType -> TypeQ
-              ftToType (FTTypeCon Nothing t) = conT $ mkName $ unpack t
-              ftToType (FTTypeCon (Just "Data.Int") "Int64") = conT ''Int64
-              ftToType (FTTypeCon (Just m) t) = conT $ mkName $ unpack $ T.concat [m, ".", t]
-              ftToType (FTApp x y) = ftToType x `appT` ftToType y
-              ftToType (FTList x) = listT `appT` ftToType x
+      -- End of copied fragment
 
-      recFields = P.map fieldToRecField $ entityFields def
+      fieldNames = P.map (nameToStr . fieldHaskell) $ entityFields def
+      fieldTypes = P.map idType $ entityFields def
+
+      recFields = P.zipWith recField fieldNames fieldTypes
       recType = appT (conT ''Rec) $ promList recFields
 
-  patArgs <- mapM (newName . nameToStr . fieldHaskell) $ entityFields def
+  patArgs <- mapM newName fieldNames
 
-  let buildInfix a acc = infixE (Just $ varE a) (conE '(:&)) (Just acc)
-      patBody = P.foldr buildInfix (conE 'RNil) patArgs
+  let buildRecord (fn, tn) = appE (appE (appE (conE 'Ext) (sigE (conE 'Var) (appT (conT ''Var) (litT (strTyLit fn))))) (varE tn))
+      patBody = P.foldr buildRecord (conE 'Empty) (P.zip fieldNames patArgs)
 
   instanceD (return []) (appT (conT ''RecExplode) (conT modelName)) [
         tySynInstD ''AsRec (tySynEqn [conT modelName] recType)

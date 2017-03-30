@@ -17,7 +17,10 @@ type StdActions a = '[ Get '[JSON] [Entity a]
 
 type API = ResourceAPI '[
     Resource "time" '[Get '[JSON] CurrentTime] '[]
-  , Resource "users" (StdActions User) '[]
+  , Resource "users" '[
+      Get '[JSON] [Entity User]
+      -- ReqBody '[JSON] UserRegistration :> Post '[JSON] (Entity User)
+    ] '[]
   , Resource "contests" '[
         Get '[JSON] [ContestWithOwners]
       , Capture "id" Int64 :> Get '[JSON] Contest

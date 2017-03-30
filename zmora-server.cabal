@@ -58,6 +58,7 @@ library
                      , text
                      , time
                      , transformers
+                     , type-level-sets
                      , unordered-containers
                      , wai
                      , wai-cors

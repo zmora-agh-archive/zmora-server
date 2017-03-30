@@ -129,13 +129,17 @@ SubmitFile
 |]
 
 newtype ContestWithOwners = ContestWithOwners {
-  unContestWithOwners ::  AsRec Contest
-                       :+ RecField "id" (Key Contest)
-                       :+ RecField "owners" [User]
-}
+  _contestWithOwners ::  AsRec Contest
+                      :+ "id" :-> (Key Contest)
+                      :+ "owners" :-> [User]
+} deriving Show
 
 instance ToJSON ContestWithOwners where
-  toJSON = toJSON . unContestWithOwners
+  toJSON = toJSON . _contestWithOwners
+
+newtype UserRegistration = UserRegistration {
+  _userRegistration :: User
+}
 
 instance ( ToBackendKey SqlBackend a, Hashable a
          ) => Hashable (Entity a) where
