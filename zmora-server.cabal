@@ -15,25 +15,51 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Api, Fake, Models, Models.Group
+  exposed-modules:     Api
+                     , Controller
+                     , Server
+                     , Types
+                     , Models, Models.Group
+                     , Utils.ResourceAPI
+                     , Utils.AesonTrim
+                     , Utils.ExtensibleRecords
+                     , Utils.Controller
+                     , Controllers.Contest
+                     , Controllers.Problem
+                     , Controllers.Submit
+                     , Controllers.Time
+                     , Controllers.User
+
   build-depends:       base >= 4.7 && < 5
                      , aeson
                      , bytestring
-                     , faker
+                     , diener
+                     , either
+                     , esqueleto
                      , ghc-prim
+                     , hashable
+                     , hashable-time
                      , lens
+                     , lifted-base
                      , persistent
+                     , persistent-postgresql
                      , persistent-template
                      , QuickCheck
+                     , reflection
                      , scrypt
                      , servant
-                     , servant-mock
+                     , servant-auth
+                     , servant-auth-server
                      , servant-server
+                     , template-haskell
                      , text
                      , time
                      , transformers
+                     , type-level-sets
+                     , unordered-containers
                      , wai
                      , wai-cors
+                     , wai-logger
                      , warp
   default-language:    Haskell2010
 

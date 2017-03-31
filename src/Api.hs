@@ -1,48 +1,39 @@
-{-# LANGUAGE DataKinds           #-}
-{-# LANGUAGE TypeOperators       #-}
-{-# LANGUAGE TypeFamilies        #-}
+{-# LANGUAGE DataKinds            #-}
+{-# LANGUAGE TypeOperators        #-}
 
-module Api
-    ( startApp
-    ) where
+module Api where
 
-import Network.Wai
-import Network.Wai.Middleware.Cors
-import Network.Wai.Handler.Warp
-import Database.Persist ( Entity(..) )
-import GHC.Types
-
+import Data.Int         (Int64(..))
+import Database.Persist (Entity(..))
 import Servant
-import Servant.Mock
 
+import Utils.ResourceAPI
+import Utils.ExtensibleRecords
 import Models
-import Fake
 
-type family ResourceAPI (path :: Symbol) a where
-  ResourceAPI path a =  path :> Get '[JSON] [Entity a]
-                   :<|> path :> Capture "id" Integer :> Get '[JSON] a
+type StdActions a = '[ Get '[JSON] [Entity a]
+                     , Capture "id" Int64 :> Get '[JSON] a
+                     ]
 
-type family SResourceAPI (path :: Symbol) a sub where
-  SResourceAPI path a sub = path :> Get '[JSON] [Entity a]
-    :<|> path :> Capture "id" Integer :> (Get '[JSON] a :<|> sub)
-
-type family SResourceAPI' (path :: Symbol) a b sub where
-  SResourceAPI' path a b sub = path :> Get '[JSON] a
-    :<|> path :> Capture "id" Integer :> (Get '[JSON] b :<|> sub)
-
-type API = "currentUser" :> Get '[JSON] (Entity User) -- temporary
-       :<|> "getTime" :> Get '[JSON] CurrentTime
-       :<|> ResourceAPI "users" User
-       :<|> SResourceAPI' "contests" [ContestWithOwners] Contest (
-              SResourceAPI "problems" ContestProblem (
-                     ResourceAPI "examples" ProblemExample
-                :<|> ResourceAPI "questions" Question
-                :<|> ResourceAPI "submits" Submit
-              )
-            )
+type API = ResourceAPI '[
+    Resource "time" '[Get '[JSON] CurrentTime] '[]
+  , Resource "users" '[
+        Capture "id" Int64 :> Get '[JSON] User
+      , ReqBody '[JSON] UserRegistration :> Post '[JSON] (Key User)
+    ] '[]
+  , Resource "contests" '[
+        Get '[JSON] [ContestWithOwners]
+      , Capture "id" Int64 :> Get '[JSON] Contest
+    ] '[
+      Resource "problems" '[ Get '[JSON] [ExpandedContestProblem]
+                           , Capture "id" Int64 :> Get '[JSON] Problem
+                           ] '[
+          Resource "examples"  '[Get '[JSON] [ProblemExampleWithoutProblem]] '[]
+        , Resource "questions" '[Get '[JSON] [QuestionWithAnswers]] '[]
+        , Resource "submits" (StdActions Submit) '[]
+      ]
+    ]
+  ]
 
 api :: Proxy API
 api = Proxy
-
-startApp :: IO ()
-startApp = run 8080 $ simpleCors $ serve api (mock api Proxy)
