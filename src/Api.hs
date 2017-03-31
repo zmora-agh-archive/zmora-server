@@ -6,6 +6,7 @@ module Api where
 import Data.Int         (Int64(..))
 import Database.Persist (Entity(..))
 import Servant
+import Servant.Auth.Server
 
 import Utils.ResourceAPI
 import Utils.ExtensibleRecords
@@ -15,12 +16,16 @@ type StdActions a = '[ Get '[JSON] [Entity a]
                      , Capture "id" Int64 :> Get '[JSON] a
                      ]
 
-type API = ResourceAPI '[
-    Resource "time" '[Get '[JSON] CurrentTime] '[]
-  , Resource "users" '[
-        Capture "id" Int64 :> Get '[JSON] User
-      , ReqBody '[JSON] UserRegistration :> Post '[JSON] (Key User)
+type PublicAPI = ResourceAPI '[
+    Resource "users" '[
+        ReqBody '[JSON] UserRegistration :> Post '[JSON] (Key User)
+      , "auth" :> ReqBody '[JSON] Login :> Post '[JSON] JwtToken
     ] '[]
+  ]
+
+type ProtectedAPI = ResourceAPI '[
+    Resource "time" '[Get '[JSON] CurrentTime] '[]
+  , Resource "users" '[Capture "id" Int64 :> Get '[JSON] User] '[]
   , Resource "contests" '[
         Get '[JSON] [ContestWithOwners]
       , Capture "id" Int64 :> Get '[JSON] Contest
@@ -34,6 +39,8 @@ type API = ResourceAPI '[
       ]
     ]
   ]
+
+type API = (Auth '[JWT] CurrentUser :> ProtectedAPI) :<|> PublicAPI
 
 api :: Proxy API
 api = Proxy

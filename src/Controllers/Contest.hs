@@ -9,11 +9,11 @@ import Utils.Controller
 import Utils.ExtensibleRecords
 import Models
 
-instance HasController (Int64 -> HandlerT IO Contest) where
-  resourceController = getById
+instance HasController (CurrentUser -> Int64 -> HandlerT IO Contest) where
+  resourceController _ = getById
 
-instance HasController (HandlerT IO [ContestWithOwners]) where
-  resourceController = (fmap enrich . collectionJoin) <$> runQuery q
+instance HasController (CurrentUser -> HandlerT IO [ContestWithOwners]) where
+  resourceController _ = (fmap enrich . collectionJoin) <$> runQuery q
     where q = select $ from $ \(contests `InnerJoin` ownerships `InnerJoin` users) -> do
               on      $ users ^. UserId ==. ownerships ^. ContestOwnershipOwner
               on      $ ownerships ^. ContestOwnershipContest ==. contests ^. ContestId

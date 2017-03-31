@@ -13,8 +13,8 @@ import Data.Text.Encoding
 import Models
 import qualified Models.Group as G
 
-instance HasController (Int64 -> HandlerT IO User) where
-  resourceController = getById
+instance HasController (CurrentUser -> Int64 -> HandlerT IO User) where
+  resourceController _ = getById
 
 instance HasController (UserRegistration -> HandlerT IO (Key User)) where
   resourceController (UserRegistration reg) = do
