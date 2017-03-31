@@ -12,10 +12,6 @@ import Utils.ResourceAPI
 import Utils.ExtensibleRecords
 import Models
 
-type StdActions a = '[ Get '[JSON] [Entity a]
-                     , Capture "id" Int64 :> Get '[JSON] a
-                     ]
-
 type PublicAPI = ResourceAPI '[
     Resource "users" '[
         ReqBody '[JSON] UserRegistration :> Post '[JSON] (Key User)
@@ -35,7 +31,10 @@ type ProtectedAPI = ResourceAPI '[
                            ] '[
           Resource "examples"  '[Get '[JSON] [ProblemExampleWithoutProblem]] '[]
         , Resource "questions" '[Get '[JSON] [QuestionWithAnswers]] '[]
-        , Resource "submits" (StdActions Submit) '[]
+        , Resource "submits" '[
+              Get '[JSON] [ESubmitWithoutAuthor]
+            , Capture "id" Int64 :> Get '[JSON] SubmitWithoutAuthor
+          ] '[]
       ]
     ]
   ]

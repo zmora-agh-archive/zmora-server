@@ -22,8 +22,8 @@ import Servant.Auth.Server
 import Utils.Controller
 import Models
 
-instance FromJWT User
-instance ToJWT User
+instance FromJWT CurrentUser
+instance ToJWT CurrentUser
 
 instance ( HasController (CurrentUser -> a)
          ) => HasController (AuthResult CurrentUser -> a) where
@@ -50,7 +50,7 @@ instance HasController (Login -> HandlerT IO JwtToken) where
     if getHash candidateHash == dbHash
       then do
         jwtCfg <- asks jwtSettings
-        token <- liftIO $ makeJWT (entityVal user) jwtCfg Nothing
+        token <- liftIO $ makeJWT user jwtCfg Nothing
         case token of
           Left e -> do
             $logError $ "JWT Error: " <> (T.pack . show) e

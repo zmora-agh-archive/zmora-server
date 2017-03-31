@@ -162,7 +162,7 @@ instance Hashable Question
 --
 -- Auth logic
 --
-type CurrentUser = User
+type CurrentUser = Entity User
 
 data Login = Login { _nick :: Text
                    , _password :: Text
@@ -232,3 +232,20 @@ newtype AnswerWithoutQuestion = AnswerWithoutQuestion {
 
 instance ToJSON AnswerWithoutQuestion where
   toJSON = toJSON . _answerWithoutQuestion
+
+newtype SubmitWithoutAuthor = SubmitWithoutAuthor {
+  _submitWithoutAuthor ::  AsRec Submit
+                      :- "author"
+} deriving Show
+
+instance ToJSON SubmitWithoutAuthor where
+  toJSON = toJSON . _submitWithoutAuthor
+
+newtype ESubmitWithoutAuthor = ESubmitWithoutAuthor {
+  _eSubmitWithoutAuthor ::  AsRec Submit
+                         :+ "id" :-> Key Submit
+                         :- "author"
+} deriving Show
+
+instance ToJSON ESubmitWithoutAuthor where
+  toJSON = toJSON . _eSubmitWithoutAuthor
