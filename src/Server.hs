@@ -54,6 +54,8 @@ startApp = do
 
   let jwtSettings = defaultJWTSettings jwtKey
 
+  let corsPolicy = CorsResourcePolicy Nothing ["POST", "GET"] ["Content-Type"] Nothing Nothing False True False
+
   withStdoutLogger $ \apacheLogger ->
     withLogger logSettings $ \logger ->
       withPostgresqlPool dbSettings 1 $ \pool -> do
@@ -61,6 +63,6 @@ startApp = do
         let settings = setPort 8080 $ setLogger apacheLogger defaultSettings
         let env = LogEnv logger $ HandlerEnv pool jwtSettings
         liftIO $ runSettings settings
-               $ simpleCors
+               $ cors (\_ -> Just corsPolicy)
                $ serveWithContext api (defaultCookieSettings :. jwtSettings :. EmptyContext)
                $ server env
