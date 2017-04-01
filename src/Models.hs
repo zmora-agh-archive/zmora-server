@@ -17,6 +17,8 @@ module Models where
 
 import Control.Lens
 import Data.Aeson
+import Data.Aeson.TH
+import Data.ByteString
 import Data.Hashable
 import Data.Hashable.Time
 import Data.HashMap.Strict as HM
@@ -26,8 +28,11 @@ import Database.Persist
 import Database.Persist.TH
 import Database.Persist.Sql
 import Data.Text
-import Data.ByteString
 import Data.Time.Clock as T
+import Database.Persist
+import Database.Persist.Sql
+import Database.Persist.TH
+import GHC.Generics
 
 import Models.Group
 import Utils.AesonTrim
@@ -152,7 +157,7 @@ Submit json
 
 SubmitFile
   submit SubmitId
-  contest ByteString
+  file ByteString
   deriving Show
 |]
 
@@ -161,6 +166,20 @@ instance Hashable Contest
 instance Hashable ContestProblem
 instance Hashable Question
 
+--
+-- Auth logic
+--
+type CurrentUser = Entity User
+
+data Login = Login { _nick :: Text
+                   , _password :: Text
+                   } deriving Show
+
+makeLenses ''Login
+deriveJSON (defaultOptionsWithTrim "_") ''Login
+
+newtype JwtToken = JwtToken { token :: Text } deriving Show
+deriveJSON defaultOptions ''JwtToken
 --
 -- Model derivates
 --
@@ -230,3 +249,11 @@ newtype AnswerWithoutQuestion = AnswerWithoutQuestion {
 
 instance ToJSON AnswerWithoutQuestion where
   toJSON = toJSON . _answerWithoutQuestion
+
+newtype SubmitWithoutAuthor = SubmitWithoutAuthor {
+  _submitWithoutAuthor ::  AsRec Submit
+                      :- "author"
+} deriving Show
+
+instance ToJSON SubmitWithoutAuthor where
+  toJSON = toJSON . _submitWithoutAuthor
