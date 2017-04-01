@@ -15,6 +15,7 @@ module Utils.Controller
 import Servant
 import Diener
 import Data.Int
+import Control.Lens
 import Data.Monoid ((<>))
 import Control.Exception.Lifted (SomeException (..), catch)
 import Database.Persist
@@ -54,6 +55,9 @@ selectOne a = do
   let safeHead []     = Nothing
       safeHead (a:as) = Just a
   maybe (throwError ErrNotFound) pure (safeHead a)
+
+safeHead :: MonadError AppError m => [a] -> m a
+safeHead l = maybe (throwError ErrNotFound) pure (l ^? _head)
 
 getAll :: (PersistEntityBackend a ~ SqlBackend, PersistEntity a)
        => HandlerT IO [Entity a]

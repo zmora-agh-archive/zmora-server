@@ -22,8 +22,8 @@ type API = ResourceAPI '[
       , ReqBody '[JSON] UserRegistration :> Post '[JSON] (Key User)
     ] '[]
   , Resource "contests" '[
-        Get '[JSON] [ContestWithOwners]
-      , Capture "id" Int64 :> Get '[JSON] Contest
+        Get '[JSON] [Entity' Contest ContestWithOwners]
+      , Capture "id" Int64 :> Get '[JSON] ContestWithOwners
     ] '[
       Resource "problems" '[ Get '[JSON] [ExpandedContestProblem]
                            , Capture "id" Int64 :> Get '[JSON] Problem
