@@ -11,6 +11,7 @@
 {-# LANGUAGE TypeOperators              #-}
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE StandaloneDeriving         #-}
 
 module Models where
 
@@ -20,6 +21,12 @@ import Data.Aeson.TH
 import Data.ByteString
 import Data.Hashable
 import Data.Hashable.Time
+import Data.HashMap.Strict as HM
+import GHC.Generics
+import Data.Aeson.TH
+import Database.Persist
+import Database.Persist.TH
+import Database.Persist.Sql
 import Data.Text
 import Data.Time.Clock as T
 import Database.Persist
@@ -177,9 +184,19 @@ deriveJSON defaultOptions ''JwtToken
 -- Model derivates
 --
 
+data Entity' a b = Entity' { entityKey' :: Key a
+                           , entityVal' :: b
+                           }
+
+deriving instance (Show (Key a), Show b) => Show (Entity' a b)
+
+instance (ToJSON (Key a), ToJSON b) => ToJSON (Entity' a b) where
+  toJSON (Entity' key value) = case toJSON value of
+    Object o -> Object $ HM.insert "id" (toJSON key) o
+    x -> x
+
 newtype ContestWithOwners = ContestWithOwners {
   _contestWithOwners ::  AsRec Contest
-                      :+ "id" :-> Key Contest
                       :+ "owners" :-> [User]
 } deriving Show
 
@@ -240,12 +257,3 @@ newtype SubmitWithoutAuthor = SubmitWithoutAuthor {
 
 instance ToJSON SubmitWithoutAuthor where
   toJSON = toJSON . _submitWithoutAuthor
-
-newtype ESubmitWithoutAuthor = ESubmitWithoutAuthor {
-  _eSubmitWithoutAuthor ::  AsRec Submit
-                         :+ "id" :-> Key Submit
-                         :- "author"
-} deriving Show
-
-instance ToJSON ESubmitWithoutAuthor where
-  toJSON = toJSON . _eSubmitWithoutAuthor

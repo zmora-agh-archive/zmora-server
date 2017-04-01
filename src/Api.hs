@@ -23,8 +23,8 @@ type ProtectedAPI = ResourceAPI '[
     Resource "time" '[Get '[JSON] CurrentTime] '[]
   , Resource "users" '[Capture "id" Int64 :> Get '[JSON] User] '[]
   , Resource "contests" '[
-        Get '[JSON] [ContestWithOwners]
-      , Capture "id" Int64 :> Get '[JSON] Contest
+        Get '[JSON] [Entity' Contest ContestWithOwners]
+      , Capture "id" Int64 :> Get '[JSON] ContestWithOwners
     ] '[
       Resource "problems" '[ Get '[JSON] [ExpandedContestProblem]
                            , Capture "id" Int64 :> Get '[JSON] Problem
@@ -32,7 +32,7 @@ type ProtectedAPI = ResourceAPI '[
           Resource "examples"  '[Get '[JSON] [ProblemExampleWithoutProblem]] '[]
         , Resource "questions" '[Get '[JSON] [QuestionWithAnswers]] '[]
         , Resource "submits" '[
-              Get '[JSON] [ESubmitWithoutAuthor]
+              Get '[JSON] [Entity' Submit SubmitWithoutAuthor]
             , Capture "id" Int64 :> Get '[JSON] SubmitWithoutAuthor
           ] '[]
       ]
