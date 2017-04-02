@@ -19,22 +19,15 @@ type PublicAPI = ResourceAPI '[
     ] '[]
   ]
 
+type StdActions a = '[Get '[JSON] [a], Capture "id" Int64 :> Get '[JSON] a]
+
 type ProtectedAPI = ResourceAPI '[
     Resource "time" '[Get '[JSON] CurrentTime] '[]
-  , Resource "users" '[Capture "id" Int64 :> Get '[JSON] User] '[]
-  , Resource "contests" '[
-        Get '[JSON] [Entity' Contest ContestWithOwners]
-      , Capture "id" Int64 :> Get '[JSON] ContestWithOwners
-    ] '[
-      Resource "problems" '[ Get '[JSON] [ExpandedContestProblem]
-                           , Capture "id" Int64 :> Get '[JSON] Problem
-                           ] '[
-          Resource "examples"  '[Get '[JSON] [ProblemExampleWithoutProblem]] '[]
+  , Resource "contests" (StdActions (Entity' Contest ContestWithOwners)) '[
+        Resource "problems" (StdActions (Entity' ContestProblem ExpandedContestProblem)) '[
+          Resource "examples"  '[Get '[JSON] [ProblemExample]] '[]
         , Resource "questions" '[Get '[JSON] [QuestionWithAnswers]] '[]
-        , Resource "submits" '[
-              Get '[JSON] [Entity' Submit SubmitWithoutAuthor]
-            , Capture "id" Int64 :> Get '[JSON] SubmitWithoutAuthor
-          ] '[]
+        , Resource "submits" (StdActions (Entity Submit)) '[]
       ]
     ]
   ]

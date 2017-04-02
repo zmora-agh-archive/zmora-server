@@ -215,45 +215,23 @@ instance FromJSON UserRegistration where
 newtype ExpandedContestProblem = ExpandedContestProblem {
   _expandedContestProblem ::  AsRec ContestProblem
                            :% "problem" :-> Problem
-                           :+ "id" :-> Key ContestProblem
-                           :- "contest"
 } deriving Show
 
 instance ToJSON ExpandedContestProblem where
   toJSON = toJSON . _expandedContestProblem
 
-newtype ProblemExampleWithoutProblem = ProblemExampleWithoutProblem {
-  _problemExampleWithoutProblemId :: AsRec ProblemExample
-                                   :- "problem"
-                                   :- "number"
-} deriving Show
-
-instance ToJSON ProblemExampleWithoutProblem where
-  toJSON = toJSON . _problemExampleWithoutProblemId
-
 newtype QuestionWithAnswers = QuestionWithAnswers {
   _questionWithAnswers ::  AsRec Question
                         :% "author" :-> User
-                        :+ "answers" :-> [AnswerWithoutQuestion]
-                        :- "problem"
+                        :+ "answers" :-> [ExpandedAnswer]
 } deriving Show
 
 instance ToJSON QuestionWithAnswers where
   toJSON = toJSON . _questionWithAnswers
 
-newtype AnswerWithoutQuestion = AnswerWithoutQuestion {
-  _answerWithoutQuestion ::  AsRec Answer
-                          :% "author" :-> User
-                          :- "question"
+newtype ExpandedAnswer = ExpandedAnswer {
+  _expandedAnswer :: AsRec Answer :% "author" :-> User
 } deriving Show
 
-instance ToJSON AnswerWithoutQuestion where
-  toJSON = toJSON . _answerWithoutQuestion
-
-newtype SubmitWithoutAuthor = SubmitWithoutAuthor {
-  _submitWithoutAuthor ::  AsRec Submit
-                      :- "author"
-} deriving Show
-
-instance ToJSON SubmitWithoutAuthor where
-  toJSON = toJSON . _submitWithoutAuthor
+instance ToJSON ExpandedAnswer where
+  toJSON = toJSON . _expandedAnswer

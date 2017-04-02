@@ -9,7 +9,7 @@ import Utils.Controller
 import Utils.ExtensibleRecords
 import Models
 
-instance HasController (CurrentUser -> Int64 -> HandlerT IO ContestWithOwners) where
+instance HasController (CurrentUser -> Int64 -> HandlerT IO (Entity' Contest ContestWithOwners)) where
   resourceController _ contestId = do
     res <- runQuery $ select $ from $ \(contest `InnerJoin` ownerships `InnerJoin` users) -> do
             on      $ users ^. UserId ==. ownerships ^. ContestOwnershipOwner
@@ -18,8 +18,10 @@ instance HasController (CurrentUser -> Int64 -> HandlerT IO ContestWithOwners) w
             return (contest, users)
 
     (ec, eu) <- safeHead $ collectionJoin res
-    return $ ContestWithOwners $ rAdd (Var :: Var "owners") (fmap entityVal eu)
-                               $ explode (entityVal ec)
+    return $ Entity' (entityKey ec)
+              $ ContestWithOwners
+              $ rAdd (Var :: Var "owners") (fmap entityVal eu)
+              $ explode (entityVal ec)
 
 instance HasController (CurrentUser -> HandlerT IO [Entity' Contest ContestWithOwners]) where
   resourceController _ = (fmap enrich . collectionJoin) <$> runQuery q
