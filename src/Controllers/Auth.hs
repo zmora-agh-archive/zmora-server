@@ -5,6 +5,7 @@
 {-# LANGUAGE TypeOperators     #-}
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Controllers.Auth where
 
@@ -25,11 +26,13 @@ import Models
 instance FromJWT CurrentUser
 instance ToJWT CurrentUser
 
-instance ( HasController (CurrentUser -> a)
-         ) => HasController (AuthResult CurrentUser -> a) where
+instance ( Monad m
+         , HasController (CurrentUser -> b)
+         , HasController (CurrentUser -> HandlerT m a)
+         ) => HasController (AuthResult CurrentUser -> HandlerT m a :<|> b) where
   resourceController = \case
-    Authenticated user -> resourceController user
-    o                  -> error (show o) -- TODO FIXME use monad stack
+    Authenticated user -> resourceController user :<|> resourceController user
+    _                  -> throwError ErrUnauthorized :<|> error "Impossible happened"
 
 instance ( HasController (CurrentUser -> a)
          , HasController (CurrentUser -> b)
