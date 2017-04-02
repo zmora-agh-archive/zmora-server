@@ -54,7 +54,7 @@ startApp = do
 
   let jwtSettings = defaultJWTSettings jwtKey
 
-  let corsPolicy = CorsResourcePolicy Nothing ["POST", "GET"] ["Content-Type"] Nothing Nothing False True False
+  let corsPolicy = CorsResourcePolicy Nothing ["POST", "GET"] ["Content-Type", "Authorization"] Nothing Nothing False True False
 
   withStdoutLogger $ \apacheLogger ->
     withLogger logSettings $ \logger ->
