@@ -24,6 +24,7 @@ library
                      , Utils.AesonTrim
                      , Utils.ExtensibleRecords
                      , Utils.Controller
+                     , Controllers.Auth
                      , Controllers.Contest
                      , Controllers.Problem
                      , Controllers.Submit
@@ -41,6 +42,7 @@ library
                      , hashable-time
                      , lens
                      , lifted-base
+                     , mtl
                      , persistent
                      , persistent-postgresql
                      , persistent-template

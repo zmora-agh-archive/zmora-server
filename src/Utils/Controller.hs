@@ -33,11 +33,6 @@ class HasController a where
 instance (HasController a, HasController b) => HasController (a :<|> b) where
   resourceController = resourceController :<|> resourceController
 
-instance ( PersistEntityBackend a ~ SqlBackend
-         , PersistEntity a
-         ) => HasController (HandlerT IO [Entity a]) where
-  resourceController = getAll
-
 runDb :: (MonadLogger (HandlerT IO), MonadError e (HandlerT IO))
       => ConnectionPool -> e -> SqlPersistT (HandlerT IO) a -> HandlerT IO a
 runDb pool err q =
@@ -50,22 +45,10 @@ runQuery query = do
   pool <- asks db
   runDb pool ErrDatabaseQuery query
 
-selectOne a = do
-  a <- E.select a
-  let safeHead []     = Nothing
-      safeHead (a:as) = Just a
-  maybe (throwError ErrNotFound) pure (safeHead a)
+selectOne a = E.select a >>= safeHead
 
 safeHead :: MonadError AppError m => [a] -> m a
 safeHead l = maybe (throwError ErrNotFound) pure (l ^? _head)
-
-getAll :: (PersistEntityBackend a ~ SqlBackend, PersistEntity a)
-       => HandlerT IO [Entity a]
-getAll = runQuery $ selectList [] []
-
-getById id = do
-  q <- runQuery $ get (toSqlKey id)
-  maybe (throwError ErrNotFound) pure q
 
 collectionJoin :: (HM.Hashable a, Eq a) => [(a, b)] -> [(a, [b])]
 collectionJoin xs = HM.toList $ HM.fromListWith (++) [(k, [v]) | (k, v) <- xs]

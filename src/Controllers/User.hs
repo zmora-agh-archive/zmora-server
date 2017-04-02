@@ -5,16 +5,14 @@ module Controllers.User where
 
 import Control.Monad.IO.Class (liftIO)
 import Crypto.Scrypt
-import Database.Persist
+import Database.Esqueleto
+import Database.Persist (insert)
 import Utils.Controller
 import Utils.ExtensibleRecords
 import Data.Text.Encoding
 
 import Models
 import qualified Models.Group as G
-
-instance HasController (Int64 -> HandlerT IO User) where
-  resourceController = getById
 
 instance HasController (UserRegistration -> HandlerT IO (Key User)) where
   resourceController (UserRegistration reg) = do
