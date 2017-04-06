@@ -45,10 +45,13 @@ runQuery query = do
   pool <- asks db
   runDb pool ErrDatabaseQuery query
 
-selectOne a = E.select a >>= safeHead
+selectOne' e a = E.select a >>= safeHead e
 
-safeHead :: MonadError AppError m => [a] -> m a
-safeHead l = maybe (throwError ErrNotFound) pure (l ^? _head)
+selectOne a = E.select a >>= safeHead ErrNotFound
+
+
+safeHead :: MonadError e m => e -> [a] -> m a
+safeHead e l = maybe (throwError e) pure (l ^? _head)
 
 collectionJoin :: (HM.Hashable a, Eq a) => [(a, b)] -> [(a, [b])]
 collectionJoin xs = HM.toList $ HM.fromListWith (++) [(k, [v]) | (k, v) <- xs]

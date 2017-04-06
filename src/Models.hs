@@ -116,6 +116,8 @@ ContestParticipation json
   user UserId
   UniqueParticipation contest user
   deriving Show
+  deriving Generic
+  deriving Eq
 
 ContestProblem json
   shortcode Text
@@ -156,10 +158,11 @@ SubmitFile
   deriving Show
 |]
 
-instance Hashable User
 instance Hashable Contest
+instance Hashable ContestParticipation
 instance Hashable ContestProblem
 instance Hashable Question
+instance Hashable User
 
 --
 -- Auth logic
@@ -193,6 +196,7 @@ instance (ToJSON (Key a), ToJSON b) => ToJSON (Entity' a b) where
 newtype ContestWithOwners = ContestWithOwners {
   _contestWithOwners ::  AsRec Contest
                       :+ "owners" :-> [User]
+                      :+ "joined" :-> Bool
 } deriving Show
 
 instance ToJSON ContestWithOwners where
