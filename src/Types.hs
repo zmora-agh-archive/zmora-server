@@ -16,6 +16,7 @@ data AppError = ErrNotFound
               deriving Show
 
 type HandlerT = DienerT AppError HandlerEnv
+
 data HandlerEnv = HandlerEnv { db   :: ConnectionPool
                              , jwtSettings :: JWTSettings
                              }

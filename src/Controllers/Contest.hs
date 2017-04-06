@@ -3,6 +3,8 @@
 
 module Controllers.Contest where
 
+import Controllers.Permission
+
 import Database.Esqueleto
 import Data.Maybe (isJust)
 
@@ -10,26 +12,20 @@ import Utils.Controller
 import Utils.ExtensibleRecords
 import Models
 
-instance HasController (CurrentUser -> Int64 -> HandlerT IO (Entity' Contest ContestWithOwners)) where
+instance HasController (CurrentUser -> Key Contest -> HandlerT IO (Entity' Contest ContestWithOwners)) where
   resourceController currentUser contestId = do
-    let cntst = val (toSqlKey contestId)
-
-    -- TODO Extract to permission framework
-
-    runQuery $ selectOne' ErrUnauthorized $ from $ \particip -> do
-      where_ $ particip ^. ContestParticipationContest ==. cntst
-      where_ $ particip ^. ContestParticipationUser ==. val (entityKey currentUser)
+    authorize currentUser contestId -- TODO: Do it in safer style
 
     res <- runQuery $ select $ from $ \(contest `InnerJoin` ownerships `InnerJoin` users) -> do
             on      $ users ^. UserId ==. ownerships ^. ContestOwnershipOwner
             on      $ ownerships ^. ContestOwnershipContest ==. contest ^. ContestId
-            where_  $ contest ^. ContestId ==. cntst
+            where_  $ contest ^. ContestId ==. val contestId
             return (contest, users)
 
     (ec, eu) <- safeHead ErrNotFound $ collectionJoin res
     return $ Entity' (entityKey ec)
               $ ContestWithOwners
-              $ rAdd (Var :: Var "joined") True -- Otherwise user would get unauthorized
+              $ rAdd (Var :: Var "joined") True -- Otherwise user should get unauthorized
               $ rAdd (Var :: Var "owners") (fmap entityVal eu)
               $ explode (entityVal ec)
 

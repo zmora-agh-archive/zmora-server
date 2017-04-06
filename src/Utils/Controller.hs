@@ -4,6 +4,7 @@
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Utils.Controller
   ( module Utils.Controller
@@ -20,6 +21,7 @@ import Data.Monoid ((<>))
 import Control.Exception.Lifted (SomeException (..), catch)
 import Database.Persist
 import Database.Persist.Postgresql
+import Database.Esqueleto.Internal.Sql (SqlSelect)
 import qualified Database.Esqueleto as E
 import qualified Data.Hashable as HM
 import qualified Data.HashMap.Strict as HM
@@ -32,6 +34,9 @@ class HasController a where
 
 instance (HasController a, HasController b) => HasController (a :<|> b) where
   resourceController = resourceController :<|> resourceController
+
+class HasPermission a b where
+  authorize :: SqlSelect () c => a -> Key b -> HandlerT IO c
 
 runDb :: (MonadLogger (HandlerT IO), MonadError e (HandlerT IO))
       => ConnectionPool -> e -> SqlPersistT (HandlerT IO) a -> HandlerT IO a
@@ -48,7 +53,6 @@ runQuery query = do
 selectOne' e a = E.select a >>= safeHead e
 
 selectOne a = E.select a >>= safeHead ErrNotFound
-
 
 safeHead :: MonadError e m => e -> [a] -> m a
 safeHead e l = maybe (throwError e) pure (l ^? _head)

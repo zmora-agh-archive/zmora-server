@@ -20,12 +20,12 @@ library
                      , Server
                      , Types
                      , Models, Models.Group
-                     , Utils.ResourceAPI
                      , Utils.AesonTrim
                      , Utils.ExtensibleRecords
                      , Utils.Controller
                      , Controllers.Auth
                      , Controllers.Contest
+                     , Controllers.Permission
                      , Controllers.Problem
                      , Controllers.Submit
                      , Controllers.Time

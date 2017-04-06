@@ -1,5 +1,7 @@
 {-# LANGUAGE DataKinds            #-}
 {-# LANGUAGE TypeOperators        #-}
+{-# LANGUAGE TypeFamilies         #-}
+{-# LANGUAGE FlexibleInstances    #-}
 
 module Api where
 
@@ -8,29 +10,33 @@ import Database.Persist (Entity(..))
 import Servant
 import Servant.Auth.Server
 
-import Utils.ResourceAPI
 import Utils.ExtensibleRecords
 import Models
 
-type PublicAPI = ResourceAPI '[
-    Resource "users" '[
-        ReqBody '[JSON] UserRegistration :> Post '[JSON] (Key User)
-      , "auth" :> ReqBody '[JSON] Login :> Post '[JSON] JwtToken
-    ] '[]
-  ]
+type G = Get  '[JSON]
+type P = Post '[JSON]
 
-type StdActions a = '[Get '[JSON] [a], Capture "id" Int64 :> Get '[JSON] a]
+type PublicAPI =
+       "users" :> ReqBody '[JSON] UserRegistration :> P (Key User)
+  :<|> "users" :> "auth" :> ReqBody '[JSON] Login :> P JwtToken
 
-type ProtectedAPI = ResourceAPI '[
-    Resource "time" '[Get '[JSON] CurrentTime] '[]
-  , Resource "contests" (StdActions (Entity' Contest ContestWithOwners)) '[
-        Resource "problems" (StdActions (Entity' ContestProblem ExpandedContestProblem)) '[
-          Resource "examples"  '[Get '[JSON] [ProblemExample]] '[]
-        , Resource "questions" '[Get '[JSON] [QuestionWithAnswers]] '[]
-        , Resource "submits" (StdActions (Entity Submit)) '[]
-      ]
-    ]
-  ]
+type ContestPath a = "contests" :> Capture "id" (Key Contest) :> a
+type ContestProblemPath a = ContestPath ("problems" :> Capture "id" (Key ContestProblem) :> a)
+type ContestProblemSubmitPath a = ContestProblemPath ("submits" :> Capture "id" (Key Submit) :> a)
+
+type ProtectedAPI =
+       "time"     :> G CurrentTime
+
+  :<|> "contests"  :> G [Entity' Contest ContestWithOwners]
+  :<|> ContestPath ( G (Entity' Contest ContestWithOwners) )
+
+  :<|> ContestPath ( "problems" :> G [Entity' ContestProblem ExpandedContestProblem] )
+  :<|> ContestProblemPath ( G (Entity' ContestProblem ExpandedContestProblem) )
+
+  :<|> ContestProblemPath ( "examples"  :> G [ProblemExample] )
+  :<|> ContestProblemPath ( "questions" :> G [QuestionWithAnswers] )
+  :<|> ContestProblemPath ( "submits"   :> G [Entity Submit] )
+  :<|> ContestProblemSubmitPath ( G (Entity Submit) )
 
 type API = (Auth '[JWT] CurrentUser :> ProtectedAPI) :<|> PublicAPI
 
