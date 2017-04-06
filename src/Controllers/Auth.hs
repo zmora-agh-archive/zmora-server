@@ -43,8 +43,8 @@ instance ( ThrowHack a, ThrowHack b
          , HasController (CurrentUser -> a)
          ) => HasController (AuthResult CurrentUser -> a :<|> b) where
   resourceController = \case
-    Authenticated user -> resourceController user
-    _                  -> throwHack ErrForbidden
+    Authenticated user -> resourceController user :<|> resourceController user
+    _                  -> throwHack ErrUnauthorized :<|> throwHack ErrForbidden
 
 instance ( HasController (CurrentUser -> a)
          , HasController (CurrentUser -> b)
