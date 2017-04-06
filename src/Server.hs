@@ -17,6 +17,7 @@ import Servant.Auth.Server
 
 import           Control.Monad.IO.Class     (liftIO)
 import           Control.Monad.Trans.Except (ExceptT, throwE)
+import           Control.Natural
 import           Diener
 import qualified Diener.Logger          as Logger
 
@@ -28,11 +29,11 @@ import Controller
 server :: LogEnv HandlerEnv -> Server API
 server env = enter dienerToEither controller
   where
-    dienerToEither :: HandlerT IO :~> ExceptT ServantErr IO
-    dienerToEither = Nat $ \ar ->
+    dienerToEither :: HandlerT IO :~> Handler
+    dienerToEither = NT $ \ar ->
       liftIO (runDienerT env ar) >>= \case
-        Left err -> throwE (appErrToServantErr err)
-        Right a  -> return a
+        Left err -> Handler $ throwE (appErrToServantErr err)
+        Right a  -> Handler $ return a
 
 appErrToServantErr :: AppError -> ServantErr
 appErrToServantErr = \case
