@@ -12,6 +12,7 @@ import Database.Persist.Postgresql (ConnectionPool)
 data AppError = ErrNotFound
               | ErrDatabaseQuery
               | ErrUnauthorized
+              | ErrForbidden
               deriving Show
 
 type HandlerT = DienerT AppError HandlerEnv

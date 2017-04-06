@@ -37,7 +37,8 @@ server env = enter dienerToEither controller
 appErrToServantErr :: AppError -> ServantErr
 appErrToServantErr = \case
   ErrNotFound     -> err403 { errBody = "The requested resource could not be found." }
-  ErrUnauthorized -> err401 { errBody = "Please authenticate in order to continue" }
+  ErrUnauthorized -> err401 { errBody = "Please authenticate in order to continue." }
+  ErrForbidden    -> err403 { errBody = "You are not authorized to access requested resource." }
   _               -> err500 { errBody = "Internal server error." }
 
 

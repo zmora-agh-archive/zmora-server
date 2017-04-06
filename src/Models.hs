@@ -22,11 +22,6 @@ import Data.ByteString
 import Data.Hashable
 import Data.Hashable.Time
 import Data.HashMap.Strict as HM
-import GHC.Generics
-import Data.Aeson.TH
-import Database.Persist
-import Database.Persist.TH
-import Database.Persist.Sql
 import Data.Text
 import Data.Time.Clock as T
 import Database.Persist

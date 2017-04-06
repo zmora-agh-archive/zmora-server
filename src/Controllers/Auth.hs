@@ -26,13 +26,25 @@ import Models
 instance FromJWT CurrentUser
 instance ToJWT CurrentUser
 
-instance ( Monad m
+class ThrowHack a where
+  throwHack :: AppError -> a
+
+instance (ThrowHack a, ThrowHack b) => ThrowHack (a :<|> b) where
+  throwHack e = throwHack e :<|> throwHack e
+
+instance Monad m => ThrowHack (HandlerT m a) where
+  throwHack = throwError
+
+instance ThrowHack b => ThrowHack (a -> b) where
+  throwHack e _ = throwHack e
+
+instance ( ThrowHack a, ThrowHack b
          , HasController (CurrentUser -> b)
-         , HasController (CurrentUser -> HandlerT m a)
-         ) => HasController (AuthResult CurrentUser -> HandlerT m a :<|> b) where
+         , HasController (CurrentUser -> a)
+         ) => HasController (AuthResult CurrentUser -> a :<|> b) where
   resourceController = \case
-    Authenticated user -> resourceController user :<|> resourceController user
-    _                  -> throwError ErrUnauthorized :<|> error "Impossible happened"
+    Authenticated user -> resourceController user
+    _                  -> throwHack ErrForbidden
 
 instance ( HasController (CurrentUser -> a)
          , HasController (CurrentUser -> b)
