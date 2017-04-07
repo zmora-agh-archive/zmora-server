@@ -11,6 +11,7 @@ module Utils.Controller
   , module Types
   , Int64(..)
   , Entity(..)
+  , liftIO
   ) where
 
 import Servant
@@ -19,6 +20,7 @@ import Data.Int
 import Control.Lens
 import Data.Monoid ((<>))
 import Control.Exception.Lifted (SomeException (..), catch)
+import Control.Monad.IO.Class (liftIO)
 import Database.Persist
 import Database.Persist.Postgresql
 import Database.Esqueleto.Internal.Sql (SqlSelect)

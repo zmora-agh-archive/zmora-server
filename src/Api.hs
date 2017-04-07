@@ -5,10 +5,11 @@
 
 module Api where
 
-import Data.Int         (Int64(..))
 import Database.Persist (Entity(..))
+
 import Servant
 import Servant.Auth.Server
+import Servant.Multipart
 
 import Utils.ExtensibleRecords
 import Models
@@ -36,6 +37,7 @@ type ProtectedAPI =
   :<|> ContestProblemPath ( "examples"  :> G [ProblemExample] )
   :<|> ContestProblemPath ( "questions" :> G [QuestionWithAnswers] )
   :<|> ContestProblemPath ( "submits"   :> G [Entity Submit] )
+  :<|> ContestProblemPath ( "submits"   :> MultipartForm MultipartData :> P (Entity' Submit SubmitWithFiles) )
   :<|> ContestProblemSubmitPath ( G (Entity Submit) )
 
 type API = (Auth '[JWT] CurrentUser :> ProtectedAPI) :<|> PublicAPI

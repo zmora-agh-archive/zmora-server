@@ -33,9 +33,9 @@ import Models.Group
 import Utils.AesonTrim
 import Utils.ExtensibleRecords
 
-newtype CurrentTime = CurrentTime { _CurrentTimeTime :: UTCTime }
+newtype CurrentTime = CurrentTime { _currentTimeTime :: UTCTime }
 makeLenses ''CurrentTime
-deriveJSON (defaultOptionsWithTrim "_CurrentTime") ''CurrentTime
+deriveJSON (defaultOptionsWithTrim "_currentTime") ''CurrentTime
 
 -- Important notice: All nodes must have timezone set to UTC
 getCurrentTime :: IO CurrentTime
@@ -149,12 +149,12 @@ Submit json
   problem ContestProblemId
   author UserId
   date UTCTime
-  checksum Text
   deriving Show
 
 SubmitFile
   submit SubmitId
   file ByteString
+  checksum Text
   deriving Show
 |]
 
@@ -234,3 +234,12 @@ newtype ExpandedAnswer = ExpandedAnswer {
 
 instance ToJSON ExpandedAnswer where
   toJSON = toJSON . _expandedAnswer
+
+newtype SubmitWithFiles = SubmitWithFiles {
+  _submitWithFiles :: AsRec Submit
+                    :+ "files" :-> [Entity' SubmitFile (AsRec SubmitFile :- "file")]
+} deriving Show
+
+instance ToJSON SubmitWithFiles where
+  toJSON = toJSON . _submitWithFiles
+
