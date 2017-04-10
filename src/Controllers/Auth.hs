@@ -51,6 +51,16 @@ instance ( HasController (CurrentUser -> a)
          ) => HasController (CurrentUser -> a :<|> b) where
   resourceController x = resourceController x :<|> resourceController x
 
+genToken :: (ToJWT a, MonadIO m) => a -> HandlerT m JwtToken
+genToken obj = do
+  jwtCfg <- asks jwtSettings
+  token <- liftIO $ makeJWT obj jwtCfg Nothing
+  case token of
+    Left e -> do
+      $logError $ "JWT Error: " <> (T.pack . show) e
+      throwError ErrUnauthorized
+    Right r -> return $ JwtToken $ decodeUtf8 $ toStrict r
+
 instance HasController (Login -> HandlerT IO JwtToken) where
   resourceController a@(Login nick candidatePass) = do
     let q = selectOne $ from $ \(cred `InnerJoin` user) -> do
@@ -63,12 +73,5 @@ instance HasController (Login -> HandlerT IO JwtToken) where
     let candidateHash = scrypt' (Salt passSalt) (Pass $ encodeUtf8 candidatePass)
 
     if getHash candidateHash == dbHash
-      then do
-        jwtCfg <- asks jwtSettings
-        token <- liftIO $ makeJWT user jwtCfg Nothing
-        case token of
-          Left e -> do
-            $logError $ "JWT Error: " <> (T.pack . show) e
-            throwError ErrUnauthorized
-          Right r -> return $ JwtToken $ decodeUtf8 $ toStrict r
+      then genToken user
       else throwError ErrUnauthorized

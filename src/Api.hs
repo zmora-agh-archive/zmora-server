@@ -18,7 +18,7 @@ type G = Get  '[JSON]
 type P = Post '[JSON]
 
 type PublicAPI =
-       "users" :> ReqBody '[JSON] UserRegistration :> P (Key User)
+       "users" :> ReqBody '[JSON] UserRegistration :> P JwtToken
   :<|> "users" :> "auth" :> ReqBody '[JSON] Login :> P JwtToken
 
 type ContestPath a = "contests" :> Capture "id" (Key Contest) :> a
