@@ -120,9 +120,14 @@ ContestParticipation json
   deriving Eq
 
 ContestProblem json
-  shortcode Text
   contest ContestId
   problem ProblemId
+  shortcode Text
+  category Text
+  basePoints Int
+  softDeadline UTCTime
+  hardDeadline UTCTime maybe
+  required Bool
   UniqueProblem contest problem
   UniqueShortcode contest shortcode
   deriving Show
