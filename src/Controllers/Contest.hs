@@ -7,6 +7,7 @@ import Controllers.Permission
 
 import Database.Esqueleto
 import Data.Maybe (isJust)
+import Data.Text
 
 import Utils.Controller
 import Utils.ExtensibleRecords
@@ -45,3 +46,10 @@ instance HasController (CurrentUser -> HandlerT IO [Entity' Contest ContestWithO
                               $ rAdd (Var :: Var "owners") (fmap entityVal eu)
                               $ explode (entityVal ec)
 
+instance HasController (CurrentUser -> Key Contest -> Text -> HandlerT IO Bool) where
+  resourceController currentUser contestId password = runQuery $ do
+    selectOne' ErrUnauthorized $ from $ \own -> do
+      where_ $ own ^. ContestOwnershipContest ==. val contestId
+      where_ $ own ^. ContestOwnershipJoinPassword ==. val password
+    insert $ ContestParticipation contestId (entityKey currentUser)
+    return True

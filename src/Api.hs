@@ -10,6 +10,7 @@ import Database.Persist (Entity(..))
 import Servant
 import Servant.Auth.Server
 import Servant.Multipart
+import Data.Text
 
 import Utils.ExtensibleRecords
 import Models
@@ -30,6 +31,7 @@ type ProtectedAPI =
 
   :<|> "contests"  :> G [Entity' Contest ContestWithOwners]
   :<|> ContestPath ( G (Entity' Contest ContestWithOwners) )
+  :<|> ContestPath ("join" :> ReqBody '[JSON] Text :> P Bool)
 
   :<|> ContestPath ( "problems" :> G [Entity' ContestProblem ExpandedContestProblem] )
   :<|> ContestProblemPath ( G (Entity' ContestProblem ExpandedContestProblem) )
