@@ -2,40 +2,17 @@
 
 module Main where
 
-import qualified Data.ByteString.Lazy.Char8 as BL
-import           Network.AMQP
+import qualified Data.ByteString.Lazy as BS
 
-data PublisherOpts = PublisherOpts {
-    publishConnOpts     :: ConnectionOpts
-  , publishExchangeOpts :: ExchangeOpts
-  }
+import           Queue.Publisher
+import           Queue.Serialization
+import           Models.Task
+import           Queue.Defs
 
-data Publisher = Publisher {publisherOpts :: PublisherOpts, conn :: Connection, chan :: Channel}
+testTask :: Task
+testTask = Task 1 "none" [File "test.c" "contents"] []
 
-taskPublisherOpts = PublisherOpts defaultConnectionOpts newExchange {
-    exchangeName = "tasks"
-  , exchangeType = "fanout"
-  }
-
-connectPublisher :: PublisherOpts -> IO Publisher
-connectPublisher opts = do
-  conn <- openConnection'' . publishConnOpts $ opts
-  chan <- openChannel conn
-  return $ Publisher opts conn chan
-
-disconnectPublisher :: Publisher -> IO ()
-disconnectPublisher = closeConnection . conn
-
-publishTask :: Publisher -> [Char] -> IO (Maybe Int)
-publishTask publisher msg =
-  publishMsg channel exchange "key" newMsg {msgBody = BL.pack msg}
-  where
-    channel = chan publisher
-    exchange = exchangeName . publishExchangeOpts . publisherOpts $ publisher
-
-main = do
-  taskPublisher <- connectPublisher taskPublisherOpts
-  publishTask taskPublisher "Hello, world!"
-  disconnectPublisher taskPublisher
+main = withPublisher taskPublisherOpts $ \publisher ->
+  publish publisher testTask
   -- confirmSelect chan True
   -- conf <- waitForConfirmsUntil chan 1000000
