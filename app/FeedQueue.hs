@@ -2,17 +2,17 @@
 
 module Main where
 
-import qualified Data.ByteString.Lazy as BS
-
-import           Queue.Publisher
-import           Queue.Serialization
+import           Control.Monad (void)
 import           Models.Task
+import           Network.AMQP  (waitForConfirms)
+import           Queue.AMQP
 import           Queue.Defs
 
 testTask :: Task
-testTask = Task 1 "none" [File "test.c" "contents"] []
+testTask = Task 1 "dummy config string" [File "source.c" "void main() {}"] []
 
-main = withPublisher taskPublisherOpts $ \publisher ->
-  publish publisher testTask
-  -- confirmSelect chan True
-  -- conf <- waitForConfirmsUntil chan 1000000
+main :: IO ()
+main = withTaskPublisher $ \publisher -> do
+  Publisher _ _ (Worker _ chan) <- return publisher
+  _ <- publish publisher "tasks" testTask
+  void $ waitForConfirms chan

@@ -3,7 +3,7 @@
 module Queue.Publisher where
 
 import qualified Data.ByteString.Lazy as BS
-import qualified Data.MessagePack as MP
+import qualified Data.MessagePack     as MP
 import           Network.AMQP
 
 import           Models.Task
@@ -12,13 +12,13 @@ import           Queue.Serialization
 data PublisherOpts m = PublisherOpts {
     publishConnOpts     :: ConnectionOpts
   , publishExchangeOpts :: ExchangeOpts
-  , publishSerializer :: m -> BS.ByteString
+  , publishSerializer   :: m -> BS.ByteString
   }
 
 data Publisher m = Publisher {
     publisherOpts :: PublisherOpts m
-  , conn :: Connection
-  , chan :: Channel
+  , conn          :: Connection
+  , chan          :: Channel
   }
 
 connectPublisher :: PublisherOpts m -> IO (Publisher m)
@@ -27,7 +27,7 @@ connectPublisher opts = do
   chan <- openChannel conn
   return $ Publisher opts conn chan
 
-disconnectPublisher :: (Publisher m) -> IO ()
+disconnectPublisher :: Publisher m -> IO ()
 disconnectPublisher = closeConnection . conn
 
 publish :: Publisher m -> m -> IO (Maybe Int)

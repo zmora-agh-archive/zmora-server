@@ -20,7 +20,7 @@ library
                      , Server
                      , Types
                      , Models, Models.Group, Models.Task
-                     , Queue.Publisher, Queue.Serialization, Queue.Defs
+                     , Queue.AMQP, Queue.Serialization, Queue.Defs
                      , Utils.AesonTrim
                      , Utils.ExtensibleRecords
                      , Utils.Controller
@@ -84,9 +84,23 @@ executable zmora-feed-queue
   main-is:             FeedQueue.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
+                     , amqp
                      , bytestring
                      , zmora-server
   default-language:    Haskell2010
+
+executable zmora-lookup-queue
+  hs-source-dirs:      app
+  main-is:             LookupQueue.hs
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  build-depends:       base
+                     , amqp
+                     , bytestring
+                     , data-msgpack
+                     , text
+                     , zmora-server
+  default-language:    Haskell2010
+
 
 test-suite zmora-server-test
   type:                exitcode-stdio-1.0

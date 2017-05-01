@@ -2,18 +2,17 @@
 
 module Queue.Defs where
 
-import           Network.AMQP
-import           Queue.Publisher
-import           Queue.Serialization (defaultSerializer)
 import           Models.Task
+import           Network.AMQP
+import           Queue.AMQP
+import           Queue.Serialization
 
---
--- Standard publisher options
---
-taskPublisherOpts :: PublisherOpts Task
-taskPublisherOpts = PublisherOpts defaultConnectionOpts exchange defaultSerializer
-  where exchange = newExchange {
-            exchangeName = "tasks"
-          , exchangeType = "fanout"
-          }
+connectionOpts :: ConnectionOpts
+connectionOpts = fromURI "amqp://guest:guest@localhost:5672"
 
+withTaskPublisher :: (Publisher Task -> IO ()) -> IO ()
+withTaskPublisher = withPublisher connectionOpts Nothing defaultSerializer
+
+taskResultSubscriber :: IO (Subscriber TaskResult)
+taskResultSubscriber = connectSubscriber connectionOpts queueOpts defaultDeserializer
+  where queueOpts = newQueue {queueName = "tasksResults"}
