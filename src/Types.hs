@@ -8,6 +8,7 @@ import Servant.Auth.Server (JWTSettings, CookieSettings)
 
 import Diener (DienerT(..))
 import Database.Persist.Postgresql (ConnectionPool)
+import Network.AMQP (Connection)
 
 data AppError = ErrNotFound
               | ErrDatabaseQuery
@@ -19,6 +20,7 @@ type HandlerT = DienerT AppError HandlerEnv
 
 data HandlerEnv = HandlerEnv { db   :: ConnectionPool
                              , jwtSettings :: JWTSettings
+                             , taskPubConnection :: Connection
                              }
 
 

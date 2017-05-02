@@ -15,6 +15,9 @@ import Database.Persist.Postgresql
 import Servant
 import Servant.Auth.Server
 
+import Network.AMQP (openConnection'')
+import Queue.Defs   (connectionOpts)
+
 import           Control.Monad.IO.Class     (liftIO)
 import           Control.Monad.Trans.Except (ExceptT, throwE)
 import           Control.Natural
@@ -58,13 +61,19 @@ startApp = do
 
   let corsPolicy = CorsResourcePolicy Nothing ["POST", "GET"] ["Content-Type", "Authorization"] Nothing Nothing False True False
 
+  taskPubConnection <- openConnection'' connectionOpts
+
   withStdoutLogger $ \apacheLogger ->
     withLogger logSettings $ \logger ->
       withPostgresqlPool dbSettings 1 $ \pool -> do
         runSqlPool (runMigration migrateAll) pool
         let settings = setPort 8080 $ setLogger apacheLogger defaultSettings
-        let env = LogEnv logger $ HandlerEnv pool jwtSettings
+        let env = LogEnv logger $ HandlerEnv pool jwtSettings taskPubConnection
         liftIO $ runSettings settings
                $ cors (\_ -> Just corsPolicy)
-               $ serveWithContext api (defaultCookieSettings :. jwtSettings :. EmptyContext)
+               $ serveWithContext api (defaultCookieSettings
+                                       :. jwtSettings
+                                       :. taskPubConnection
+                                       :. EmptyContext
+                                      )
                $ server env

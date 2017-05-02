@@ -9,41 +9,41 @@ import qualified Data.Text           as T
 import           Models.Task
 import           Network.AMQP
 import           Queue.AMQP
+import           Queue.Defs          (brokerURI, connectionOpts)
 import           Queue.Serialization
 
-handleMessage :: (MessagePack a, Show a) => Bool -> (a, Envelope) -> IO ()
+handleMessage
+  :: (MessagePack a, Show a)
+  => Bool -> (a, Envelope) -> IO ()
 handleMessage requeue (msg, envelope) = do
   putStrLn $ "Received message: " ++ show msg
   unless requeue $ ackEnv envelope
 
-standardSubscriber :: MessagePack a => T.Text -> IO (Subscriber a)
-standardSubscriber queueName =
-  connectSubscriber connOpts queue defaultDeserializer
-  where connOpts = fromURI brokerURI
-        queue = newQueue {queueName, queuePassive = True}
+standardSubscriber
+  :: MessagePack a
+  => T.Text -> Connection -> IO (Subscriber a)
+standardSubscriber queueName connection =
+  openChannel connection >>= newSubscriber spec
+  where
+    spec = SubscriberSpec queue defaultDeserializer
+    queue = newQueue {queueName, queuePassive = True}
 
 subscriberQueueName :: Subscriber a -> String
-subscriberQueueName (Subscriber qOpts _ _) = T.unpack . queueName $ qOpts
+subscriberQueueName (Subscriber spec _) = T.unpack . queueName . subOpts $ spec
 
-taskSubscriber :: IO (Subscriber Task)
+taskSubscriber :: Connection -> IO (Subscriber Task)
 taskSubscriber = standardSubscriber "tasks"
-taskResultSubscriber :: IO (Subscriber TaskResult)
+
+taskResultSubscriber :: Connection -> IO (Subscriber TaskResult)
 taskResultSubscriber = standardSubscriber "tasksResults"
 
-brokerURI :: String
-brokerURI = "amqp://guest:guest@localhost:5672"
-
 main :: IO ()
-main = let
-  requeue = True
-  subscriber = taskResultSubscriber
-  in do
-    queueName <- subscriberQueueName <$> subscriber
-    putStrLn $ "Using URI: " ++ brokerURI
-    putStrLn $ "Subscribe queue: " ++ queueName ++ " (requeue: " ++ show requeue ++ ")"
-    putStrLn "Press RETURN to exit..."
-
-    _ <- subscriber >>= flip subscribe (handleMessage requeue)
-
+main = do
+  putStrLn $ "Using options: " ++ brokerURI
+  putStrLn "Press RETURN to exit..."
+  withConnection connectionOpts $ \connection -> do
+    _ <- taskSubscriber connection >>= flip subscribe (handleMessage True)
+    _ <-
+      taskResultSubscriber connection >>= flip subscribe (handleMessage False)
     _ <- getLine
     return ()
