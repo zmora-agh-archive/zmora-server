@@ -155,6 +155,15 @@ Submit json
   author UserId
   date UTCTime
   deriving Show
+  deriving Eq
+  deriving Generic
+
+TestResult json
+  submit SubmitId
+  status Text
+  executionTime Int
+  ramUsage Int
+  deriving Show
 
 SubmitFile
   submit SubmitId
@@ -162,6 +171,8 @@ SubmitFile
   checksum Text
   filename Text
   deriving Show
+  deriving Eq
+  deriving Generic
 |]
 
 instance Hashable Contest
@@ -169,6 +180,8 @@ instance Hashable ContestParticipation
 instance Hashable ContestProblem
 instance Hashable Question
 instance Hashable User
+instance Hashable Submit
+instance Hashable SubmitFile
 
 --
 -- Auth logic
@@ -198,6 +211,7 @@ instance (ToJSON (Key a), ToJSON b) => ToJSON (Entity' a b) where
   toJSON (Entity' key value) = case toJSON value of
     Object o -> Object $ HM.insert "id" (toJSON key) o
     x -> x
+
 
 newtype ContestWithOwners = ContestWithOwners {
   _contestWithOwners ::  AsRec Contest
@@ -249,3 +263,11 @@ newtype SubmitWithFiles = SubmitWithFiles {
 instance ToJSON SubmitWithFiles where
   toJSON = toJSON . _submitWithFiles
 
+newtype SubmitWithFilesAndTests = SubmitWithFilesAndTests {
+  _submitWithFilesAndTests :: AsRec Submit
+                    :+ "tests" :-> [Entity' TestResult (AsRec TestResult :- "submit")]
+                    :+ "files" :-> [Entity' SubmitFile (AsRec SubmitFile :- "file" :- "submit")]
+} deriving Show
+
+instance ToJSON SubmitWithFilesAndTests where
+  toJSON = toJSON . _submitWithFilesAndTests
