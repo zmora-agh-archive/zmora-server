@@ -19,7 +19,8 @@ type G = Get  '[JSON]
 type P = Post '[JSON]
 
 type PublicAPI =
-       "users" :> ReqBody '[JSON] UserRegistration :> P JwtToken
+       "time"  :> G CurrentTime
+  :<|> "users" :> ReqBody '[JSON] UserRegistration :> P JwtToken
   :<|> "users" :> "auth" :> ReqBody '[JSON] Login :> P JwtToken
 
 type ContestPath a = "contests" :> Capture "id" (Key Contest) :> a
@@ -27,9 +28,7 @@ type ContestProblemPath a = ContestPath ("problems" :> Capture "id" (Key Contest
 type ContestProblemSubmitPath a = ContestProblemPath ("submits" :> Capture "id" (Key Submit) :> a)
 
 type ProtectedAPI =
-       "time"     :> G CurrentTime
-
-  :<|> "contests"  :> G [Entity' Contest ContestWithOwners]
+       "contests"  :> G [Entity' Contest ContestWithOwners]
   :<|> ContestPath ( G (Entity' Contest ContestWithOwners) )
   :<|> ContestPath ("join" :> ReqBody '[JSON] Text :> P Bool)
 

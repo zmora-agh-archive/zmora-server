@@ -160,6 +160,7 @@ SubmitFile
   submit SubmitId
   file ByteString
   checksum Text
+  filename Text
   deriving Show
 |]
 

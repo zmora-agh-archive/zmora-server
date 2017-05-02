@@ -55,13 +55,15 @@ instance HasController (CurrentUser -> Key Contest -> Key ContestProblem -> Mult
     currentTimestamp <- liftIO T.getCurrentTime
     let submit = Submit problem (entityKey user) currentTimestamp
 
-    filesContents <- forM (files formData) $ \(fdFilePath -> tmpPath) -> liftIO $ BS.readFile tmpPath
+    files <- forM (files formData) $ \fd -> liftIO $ do
+      contents <- BS.readFile $ fdFilePath fd
+      return (fdFileName fd, contents)
 
     submitFiles <-
-      forM filesContents $ \content -> do
+      forM files $ \(filename, content) -> do
         let sha1sum = T.pack $ BS.unpack (hash content) >>= printf "%02x"
         return $ \sid -> do
-          let sfile = SubmitFile sid content sha1sum
+          let sfile = SubmitFile sid content sha1sum filename
           fileId <- insert sfile
           return $ Entity' fileId $ rDel (Var :: Var "file") $ explode sfile
 
@@ -73,11 +75,11 @@ instance HasController (CurrentUser -> Key Contest -> Key ContestProblem -> Mult
         Entity' submitId $
         SubmitWithFiles $ rAdd (Var :: Var "files") files $ explode submit
 
-    _ <- submitTask (entityKey' entity) filesContents
+    _ <- submitTask (entityKey' entity) files
 
     return entity
 
-submitTask :: Key Submit -> [BS.ByteString] -> HandlerT IO (Maybe ConfirmationResult)
+submitTask :: Key Submit -> [(T.Text, BS.ByteString)] -> HandlerT IO (Maybe ConfirmationResult)
 submitTask submitKey filesContents = do
   connection <- asks taskPubConnection
   $logDebug $ "Publishing task " <> (T.pack . show) task
@@ -88,5 +90,5 @@ submitTask submitKey filesContents = do
     taskId = fromSqlKey submitKey
     config = "dummy config"
     tests = [MT.Test "" "1\n2\n3\n" 0 0]
-    taskFiles = map (MT.File "source.c" . BL.fromStrict) filesContents
+    taskFiles = map (\(filename, contents) -> MT.File filename $ BL.fromStrict contents) filesContents
     task = MT.Task taskId config taskFiles tests

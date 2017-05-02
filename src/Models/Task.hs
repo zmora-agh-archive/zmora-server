@@ -1,5 +1,6 @@
 module Models.Task where
 
+import qualified Data.Text as T
 import qualified Data.ByteString.Lazy as B
 import Data.Int
 
@@ -11,7 +12,7 @@ data Task = Task
   } deriving (Show)
 
 data File = File
-  { name :: String
+  { name :: T.Text
   , content :: B.ByteString
   } deriving (Show)
 
