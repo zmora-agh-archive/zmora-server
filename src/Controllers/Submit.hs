@@ -39,11 +39,11 @@ instance HasController (CurrentUser -> Key Contest -> Key ContestProblem -> Mult
     currentTimestamp <- liftIO T.getCurrentTime
     let submit = Submit problem (entityKey user) currentTimestamp
 
-    submitFiles <- forM (files formData) $ \(fdFilePath -> tmpPath) -> do
-      content <- liftIO $ BS.readFile tmpPath
+    submitFiles <- forM (files formData) $ \fd -> do
+      content <- liftIO $ BS.readFile (fdFilePath fd)
       let sha1sum = T.pack $ BS.unpack (hash content) >>= printf "%02x"
       return $ \sid -> do
-        let sfile = SubmitFile sid content sha1sum
+        let sfile = SubmitFile sid content sha1sum (fdFileName fd)
         fileId <- insert sfile
         return $ Entity' fileId $ rDel (Var :: Var "file") $ explode sfile
 
