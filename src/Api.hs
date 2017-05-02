@@ -39,7 +39,7 @@ type ProtectedAPI =
   :<|> ContestProblemPath ( "questions" :> G [QuestionWithAnswers] )
   :<|> ContestProblemPath ( "submits"   :> G [Entity Submit] )
   :<|> ContestProblemPath ( "submits"   :> MultipartForm MultipartData :> P (Entity' Submit SubmitWithFiles) )
-  :<|> ContestProblemSubmitPath ( G (Entity Submit) )
+  :<|> ContestProblemSubmitPath ( G (Entity' Submit SubmitWithFilesAndTests) )
 
 type API = (Auth '[JWT] CurrentUser :> ProtectedAPI) :<|> PublicAPI
 
