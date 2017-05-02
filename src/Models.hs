@@ -49,6 +49,11 @@ instance ( ToBackendKey SqlBackend a, Hashable a
 instance ToBackendKey SqlBackend a => Hashable (Key a) where
   hashWithSalt salt k = salt `hashWithSalt` fromSqlKey k
 
+submitStatusQUE = "QUE" :: Text
+submitStatusERR = "ERR" :: Text
+submitStatusOK = "OK" :: Text
+
+
 share
   [ mkPersist sqlSettings { mpsGenerateLenses = True }
   , mkMigrate "migrateAll"
@@ -154,6 +159,7 @@ Submit json
   problem ContestProblemId
   author UserId
   date UTCTime
+  status Text
   deriving Show
   deriving Eq
   deriving Generic
