@@ -19,7 +19,7 @@ library
                      , Controller
                      , Server
                      , Types
-                     , Models, Models.Group
+                     , Models, Models.Group, Models.SubmitStatus
                      , Utils.AesonTrim
                      , Utils.ExtensibleRecords
                      , Utils.Controller

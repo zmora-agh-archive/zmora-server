@@ -30,6 +30,7 @@ import Database.Persist.TH
 import GHC.Generics
 
 import Models.Group
+import Models.SubmitStatus
 import Utils.AesonTrim
 import Utils.ExtensibleRecords
 
@@ -48,11 +49,6 @@ instance ( ToBackendKey SqlBackend a, Hashable a
 
 instance ToBackendKey SqlBackend a => Hashable (Key a) where
   hashWithSalt salt k = salt `hashWithSalt` fromSqlKey k
-
-submitStatusQUE = "QUE" :: Text
-submitStatusERR = "ERR" :: Text
-submitStatusOK = "OK" :: Text
-
 
 share
   [ mkPersist sqlSettings { mpsGenerateLenses = True }
@@ -159,7 +155,7 @@ Submit json
   problem ContestProblemId
   author UserId
   date UTCTime
-  status Text
+  status SubmitStatus
   deriving Show
   deriving Eq
   deriving Generic
