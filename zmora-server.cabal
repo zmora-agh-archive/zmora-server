@@ -19,9 +19,8 @@ library
                      , Controller
                      , Server
                      , Types
-                     , Models, Models.Group, Models.Task
+                     , Models, Models.Group
                      , Queue
-                     , Queue.AMQP, Queue.Serialization, Queue.Defs
                      , Utils.AesonTrim
                      , Utils.ExtensibleRecords
                      , Utils.Controller
@@ -38,7 +37,7 @@ library
                      , amqp
                      , bytestring
                      , cryptohash
-                     , data-msgpack
+                     , containers
                      , diener
                      , either
                      , esqueleto
@@ -70,7 +69,7 @@ library
                      , wai-cors
                      , wai-logger
                      , warp
-                     , containers
+                     , zmora-queue
   default-language:    Haskell2010
 
 executable zmora-server
@@ -80,29 +79,6 @@ executable zmora-server
   build-depends:       base
                      , zmora-server
   default-language:    Haskell2010
-
-executable zmora-feed-queue
-  hs-source-dirs:      app
-  main-is:             FeedQueue.hs
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
-  build-depends:       base
-                     , amqp
-                     , bytestring
-                     , zmora-server
-  default-language:    Haskell2010
-
-executable zmora-lookup-queue
-  hs-source-dirs:      app
-  main-is:             LookupQueue.hs
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
-  build-depends:       base
-                     , amqp
-                     , bytestring
-                     , data-msgpack
-                     , text
-                     , zmora-server
-  default-language:    Haskell2010
-
 
 test-suite zmora-server-test
   type:                exitcode-stdio-1.0

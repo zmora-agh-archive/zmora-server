@@ -15,9 +15,9 @@ import qualified Models                      as DM
 import           Utils.Controller            (HandlerT, taskPubConnection)
 
 import           Diener
-import           Models.Task
-import           Queue.AMQP
-import           Queue.Defs
+
+import           Zmora.Queue
+import           Zmora.AMQP
 
 connectQueue :: String -> IO AMQP.Connection
 connectQueue = AMQP.openConnection'' . AMQP.fromURI

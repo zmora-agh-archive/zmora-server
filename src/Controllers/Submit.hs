@@ -21,10 +21,6 @@ import Servant.Multipart
 import Text.Printf (printf)
 import Diener
 
-import qualified Models.Task as MT
-import Network.AMQP
-import Queue.AMQP
-import Queue.Defs
 import Utils.Controller
 import Utils.ExtensibleRecords
 import Data.Monoid ((<>))

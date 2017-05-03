@@ -26,7 +26,6 @@ import Models
 import Types
 import Controller
 import Queue
-import Queue.Defs
 
 server :: LogEnv HandlerEnv -> Server API
 server env = enter dienerToEither controller

@@ -45,6 +45,10 @@ packages:
     git: https://github.com/themoritz/diener.git
     commit: 63ce80f903f654259e5a025535c7f88b3f82933c
   extra-dep: true
+- location:
+    git: https://github.com/zmora-agh/zmora-queue.git
+    commit: deea7314c9b10148c03c361d12eed6e1c49242db
+  extra-dep: true
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
 extra-deps:
