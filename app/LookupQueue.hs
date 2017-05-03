@@ -3,13 +3,11 @@
 
 module Main where
 
-import           Control.Monad       (unless)
 import           Data.MessagePack
 import qualified Data.Text           as T
 import           Models.Task
 import           Network.AMQP
 import           Queue.AMQP
-import           Queue.Defs          (brokerURI, connectionOpts)
 import           Queue.Serialization
 
 handleMessage
@@ -17,7 +15,9 @@ handleMessage
   => Bool -> (a, Envelope) -> IO ()
 handleMessage requeue (msg, envelope) = do
   putStrLn $ "Received message: " ++ show msg
-  unless requeue $ ackEnv envelope
+  if requeue
+    then rejectEnv envelope True
+    else ackEnv envelope
 
 standardSubscriber
   :: MessagePack a
@@ -37,13 +37,15 @@ taskSubscriber = standardSubscriber "tasks"
 taskResultSubscriber :: Connection -> IO (Subscriber TaskResult)
 taskResultSubscriber = standardSubscriber "tasksResults"
 
+brokerURI :: String
+brokerURI = "amqp://guest:guest@localhost:5672"
+
 main :: IO ()
 main = do
   putStrLn $ "Using options: " ++ brokerURI
-  putStrLn "Press RETURN to exit..."
-  withConnection connectionOpts $ \connection -> do
+  putStrLn "Press RETURN to EXIT GRACEFULLY..."
+  withConnection (fromURI brokerURI) $ \connection -> do
     _ <- taskSubscriber connection >>= flip subscribe (handleMessage True)
-    _ <-
-      taskResultSubscriber connection >>= flip subscribe (handleMessage False)
+    _ <- taskResultSubscriber connection >>= flip subscribe (handleMessage True)
     _ <- getLine
     return ()

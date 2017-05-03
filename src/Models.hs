@@ -164,6 +164,8 @@ TestResult json
   executionTime Int
   ramUsage Int
   deriving Show
+  deriving Ord
+  deriving Eq
 
 SubmitFile
   submit SubmitId
@@ -173,6 +175,7 @@ SubmitFile
   deriving Show
   deriving Eq
   deriving Generic
+  deriving Ord
 |]
 
 instance Hashable Contest

@@ -15,9 +15,6 @@ import Database.Persist.Postgresql
 import Servant
 import Servant.Auth.Server
 
-import Network.AMQP (openConnection'')
-import Queue.Defs   (connectionOpts)
-
 import           Control.Monad.IO.Class     (liftIO)
 import           Control.Monad.Trans.Except (ExceptT, throwE)
 import           Control.Natural
@@ -28,6 +25,8 @@ import Api
 import Models
 import Types
 import Controller
+import Queue
+import Queue.Defs
 
 server :: LogEnv HandlerEnv -> Server API
 server env = enter dienerToEither controller
@@ -45,7 +44,6 @@ appErrToServantErr = \case
   ErrForbidden    -> err403 { errBody = "You are not authorized to access requested resource." }
   _               -> err500 { errBody = "Internal server error." }
 
-
 startApp :: IO ()
 startApp = do
   let logSettings = Logger.Settings { Logger.filePath = "server.log"
@@ -53,6 +51,7 @@ startApp = do
                                     , Logger.noConsoleLogging = False
                                     }
   let dbSettings = "host=localhost port=5432 user=zmora dbname=zmora password=szatan"
+  let queueSettings = "amqp://guest:guest@localhost:5672"
 
   -- TODO Make this persist, so every restart is not regenerating the key
   jwtKey <- generateKey
@@ -61,19 +60,22 @@ startApp = do
 
   let corsPolicy = CorsResourcePolicy Nothing ["POST", "GET"] ["Content-Type", "Authorization"] Nothing Nothing False True False
 
-  taskPubConnection <- openConnection'' connectionOpts
+  queueConnection <- connectQueue queueSettings
 
   withStdoutLogger $ \apacheLogger ->
     withLogger logSettings $ \logger ->
       withPostgresqlPool dbSettings 1 $ \pool -> do
         runSqlPool (runMigration migrateAll) pool
         let settings = setPort 8080 $ setLogger apacheLogger defaultSettings
-        let env = LogEnv logger $ HandlerEnv pool jwtSettings taskPubConnection
+        let env = LogEnv logger $ HandlerEnv pool jwtSettings queueConnection
+
+        _ <- liftIO $ runDbQueueSubscriber pool queueConnection
+
         liftIO $ runSettings settings
                $ cors (\_ -> Just corsPolicy)
                $ serveWithContext api (defaultCookieSettings
                                        :. jwtSettings
-                                       :. taskPubConnection
+                                       :. queueConnection
                                        :. EmptyContext
                                       )
                $ server env

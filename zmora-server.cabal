@@ -20,6 +20,7 @@ library
                      , Server
                      , Types
                      , Models, Models.Group, Models.Task
+                     , Queue
                      , Queue.AMQP, Queue.Serialization, Queue.Defs
                      , Utils.AesonTrim
                      , Utils.ExtensibleRecords
@@ -69,6 +70,7 @@ library
                      , wai-cors
                      , wai-logger
                      , warp
+                     , containers
   default-language:    Haskell2010
 
 executable zmora-server

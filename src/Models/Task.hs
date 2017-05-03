@@ -24,7 +24,7 @@ data Test = Test
   } deriving (Show)
 
 data TaskResult = TaskResult
-  { resultId :: Int
+  { resultId :: Int64
   , compilationLog :: String
   , testResults :: [TestResult]
   } deriving (Show)
