@@ -27,6 +27,7 @@ import Database.Esqueleto.Internal.Sql (SqlSelect)
 import qualified Database.Esqueleto as E
 import qualified Data.Hashable as HM
 import qualified Data.HashMap.Strict as HM
+import qualified Data.HashSet as HS
 import qualified Data.Text as T (pack)
 
 import Types
@@ -61,3 +62,6 @@ safeHead e l = maybe (throwError e) pure (l ^? _head)
 
 collectionJoin :: (HM.Hashable a, Eq a) => [(a, b)] -> [(a, [b])]
 collectionJoin xs = HM.toList $ HM.fromListWith (++) [(k, [v]) | (k, v) <- xs]
+
+mkUnique :: (HM.Hashable a, Eq a) => [a] -> [a]
+mkUnique = HS.toList . HS.fromList

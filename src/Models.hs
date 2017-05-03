@@ -164,6 +164,8 @@ TestResult json
   executionTime Int
   ramUsage Int
   deriving Show
+  deriving Eq
+  deriving Generic
 
 SubmitFile
   submit SubmitId
@@ -182,6 +184,7 @@ instance Hashable Question
 instance Hashable User
 instance Hashable Submit
 instance Hashable SubmitFile
+instance Hashable TestResult
 
 --
 -- Auth logic

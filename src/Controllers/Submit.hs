@@ -50,8 +50,8 @@ instance HasController (CurrentUser -> Key Contest -> Key ContestProblem -> Key 
 
     return $ Entity' (entityKey es)
             $ SubmitWithFilesAndTests
-            $ rAdd (Var :: Var "files") (fmap truncateFile ef)
-            $ rAdd (Var :: Var "tests") (fmap truncateTest et)
+            $ rAdd (Var :: Var "files") (fmap truncateFile $ mkUnique ef)
+            $ rAdd (Var :: Var "tests") (fmap truncateTest $ mkUnique et)
             $ explode (entityVal es)
     where truncateFile file = Entity' (entityKey file)
             $ rDel (Var :: Var "file")
