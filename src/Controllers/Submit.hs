@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeFamilies      #-}
 {-# LANGUAGE ViewPatterns      #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Controllers.Submit where
 
@@ -19,6 +20,7 @@ import Utils.Controller
 import Utils.ExtensibleRecords
 
 import Models
+import Models.SubmitStatus
 
 instance HasController (CurrentUser -> Key Contest -> Key ContestProblem -> HandlerT IO [Entity Submit]) where
   resourceController user _ problemId = runQuery q
@@ -66,7 +68,7 @@ instance HasController (CurrentUser -> Key Contest -> Key ContestProblem -> Key 
 instance HasController (CurrentUser -> Key Contest -> Key ContestProblem -> MultipartData -> HandlerT IO (Entity' Submit SubmitWithFiles)) where
   resourceController user _ problem formData = do
     currentTimestamp <- liftIO T.getCurrentTime
-    let submit = Submit problem (entityKey user) currentTimestamp
+    let submit = Submit problem (entityKey user) currentTimestamp QUE
 
     submitFiles <- forM (files formData) $ \fd -> do
       content <- liftIO $ BS.readFile (fdFilePath fd)
