@@ -8,11 +8,11 @@ import qualified Data.ByteString             as BS
 import qualified Data.ByteString.Lazy        as BL
 import           Data.Monoid                 ((<>))
 import qualified Data.Text                   as T
-import           Database.Persist.Postgresql
 import qualified Network.AMQP                as AMQP
 
 import qualified Models                      as DM
 import           Utils.Controller            (HandlerT, taskPubConnection)
+import           Database.Esqueleto
 
 import           Diener
 
@@ -38,26 +38,40 @@ runDbQueueSubscriber dbPool qConn = do
     mapM_ (`runSqlPool` dbPool) (insert <$> toDbModel msg)
     AMQP.ackEnv env
 
+toQueueTest :: DM.ProblemTest -> Test
+toQueueTest (DM.ProblemTest _ testInput testOutput) = Test testInput testOutput 0 0
+
+problemTests :: ConnectionPool -> Key DM.ContestProblem -> IO [Test]
+problemTests dbPool problemId =
+  map (toQueueTest . entityVal) <$> runSqlPool q dbPool
+  where
+    q = select $ from $ \testEntities -> do
+      where_ $ testEntities ^. DM.ProblemTestProblem ==. val problemId
+      return testEntities
+
 submitTask
-  :: Key DM.Submit
+  :: ConnectionPool
+  -> Entity DM.Submit
   -> [(T.Text, BS.ByteString)]
   -> HandlerT IO (Maybe AMQP.ConfirmationResult)
-submitTask submitKey filesContents = do
+submitTask dbPool submitEntity filesContents = do
   connection <- asks taskPubConnection
-  $logDebug $ "Publishing task " <> (T.pack . show) task
-  publishResult <-
+
+  publishResult <- do
+    taskTests <- liftIO $ problemTests dbPool problemId
+    let task = Task taskEntityId config taskFiles taskTests
+
+    $logDebug $ "Publishing task " <> (T.pack . show) task
     liftIO $ withTaskPublisher connection $ \publisher -> publish publisher task
+
   $logDebug $ "Publish result: " <> (T.pack . show) publishResult
+
   return publishResult
   where
-    taskId = fromSqlKey submitKey
+    taskEntityId = fromSqlKey . entityKey $ submitEntity
+    (DM.Submit problemId _ _) = entityVal submitEntity
     config = "dummy config"
-    tests =
-      [ Test "0\n" "0\n2\n4\n" 0 0
-      , Test "1\n" "1\n3\n5\n" 0 0
-      ]
     taskFiles =
       map
         (\(filename, contents) -> File filename $ BL.fromStrict contents)
         filesContents
-    task = Task taskId config taskFiles tests

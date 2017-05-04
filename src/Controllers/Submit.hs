@@ -107,6 +107,7 @@ instance HasController (CurrentUser -> Key Contest -> Key ContestProblem -> Mult
         Entity' submitId $
         SubmitWithFiles $ rAdd (Var :: Var "files") files $ explode submit
 
-    _ <- submitTask (entityKey' entity) files
+    dbPool <- asks db
+    _ <- submitTask dbPool (Entity (entityKey' entity) submit) files
 
     return entity

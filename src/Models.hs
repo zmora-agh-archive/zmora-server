@@ -111,6 +111,11 @@ ProblemExample json
   explanation Text
   deriving Show
 
+ProblemTest
+  problem ContestProblemId
+  input Text
+  output Text
+
 ContestParticipation json
   contest ContestId
   user UserId
