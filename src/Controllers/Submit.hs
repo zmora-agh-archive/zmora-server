@@ -25,6 +25,7 @@ instance HasController (CurrentUser -> Key Contest -> Key ContestProblem -> Hand
     where q = select $ from $ \submits -> do
             where_ $ submits ^. SubmitProblem ==. val problemId
             where_ $ submits ^. SubmitAuthor ==. val (entityKey user)
+            orderBy [ desc (submits ^. SubmitDate)]
             return submits
 
 instance HasController (CurrentUser -> Key Contest -> Key ContestProblem -> Key Submit -> HandlerT IO (Entity Submit)) where
