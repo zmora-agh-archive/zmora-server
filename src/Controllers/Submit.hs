@@ -15,6 +15,7 @@ import qualified Data.ByteString as BS
 import qualified Data.Text as T
 import Servant.Multipart
 import Text.Printf (printf)
+import Data.Maybe (mapMaybe)
 
 import Utils.Controller
 import Utils.ExtensibleRecords
@@ -39,23 +40,21 @@ instance HasController (CurrentUser -> Key Contest -> Key ContestProblem -> Key 
 
 instance HasController (CurrentUser -> Key Contest -> Key ContestProblem -> Key Submit -> HandlerT IO (Entity' Submit SubmitWithFilesAndTests)) where
   resourceController user _ _ submitId = do
-    res <- runQuery $ select $ from $ \(submits `LeftOuterJoin` testResults `LeftOuterJoin` files) -> do
+    res <- runQuery $ select $ from $ \(submits `LeftOuterJoin` testResults `InnerJoin` files) -> do
             on      $ submits ^. SubmitId ==. files ^. SubmitFileSubmit
-            on      $ submits ^. SubmitId ==. testResults ^. TestResultSubmit
+            on      $ just (submits ^. SubmitId) ==. testResults ?. TestResultSubmit
             where_  $ submits ^. SubmitId ==. val submitId
             where_  $ submits ^. SubmitAuthor ==. val (entityKey user)
             return (submits, files, testResults)
 
-    let files = collectionJoin $ map (\(submit, file, _) -> (submit, file)) res
-    let tests = collectionJoin $ map (\(submit, _, test) -> (submit, test)) res
-    let r = [(submit, file, test) | (submit, file) <- files, (submit, test) <- tests]
-    (es, ef, et) <- safeHead ErrNotFound $ r
+    (submit, files) <- safeHead ErrNotFound $ collectionJoin $ map (\(submit, file, _) -> (submit, file)) res
+    let tests = mapMaybe (\(_, _, tests) -> tests) res
 
-    return $ Entity' (entityKey es)
+    return $ Entity' (entityKey submit)
             $ SubmitWithFilesAndTests
-            $ rAdd (Var :: Var "files") (fmap truncateFile ef)
-            $ rAdd (Var :: Var "tests") (fmap truncateTest et)
-            $ explode (entityVal es)
+            $ rAdd (Var :: Var "files") (fmap truncateFile files)
+            $ rAdd (Var :: Var "tests") (fmap truncateTest tests)
+            $ explode (entityVal submit)
     where truncateFile file = Entity' (entityKey file)
             $ rDel (Var :: Var "file")
             $ rDel (Var :: Var "submit")
