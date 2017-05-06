@@ -30,6 +30,7 @@ import Database.Persist.TH
 import GHC.Generics
 
 import Models.Group
+import Models.SubmitStatus
 import Utils.AesonTrim
 import Utils.ExtensibleRecords
 
@@ -159,6 +160,7 @@ Submit json
   problem ContestProblemId
   author UserId
   date UTCTime
+  status SubmitStatus
   deriving Show
   deriving Eq
   deriving Generic

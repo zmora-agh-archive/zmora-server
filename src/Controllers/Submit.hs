@@ -2,17 +2,13 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeFamilies #-}
-
-{-# LANGUAGE OverloadedLists #-}
-
+{-# LANGUAGE TypeFamilies      #-}
 
 module Controllers.Submit where
 
 import Control.Monad
 import Crypto.Hash.SHA1
 import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
 import qualified Data.Set as S
 import Data.Time.Clock as T
@@ -23,24 +19,18 @@ import Diener
 
 import Utils.Controller
 import Utils.ExtensibleRecords
-import Data.Monoid ((<>))
 
 import Models
+import Models.SubmitStatus
 import Queue
 
 instance HasController (CurrentUser -> Key Contest -> Key ContestProblem -> HandlerT IO [Entity Submit]) where
   resourceController user _ problemId = runQuery q
-    where
-      q =
-        select $
-        from $ \submits -> do
-          where_ $ submits ^. SubmitProblem ==. val problemId
-          where_ $ submits ^. SubmitAuthor ==. val (entityKey user)
-          return submits
-
-type S = Entity Submit
-type F = Entity SubmitFile
-type T = Entity TestResult
+    where q = select $ from $ \submits -> do
+            where_ $ submits ^. SubmitProblem ==. val problemId
+            where_ $ submits ^. SubmitAuthor ==. val (entityKey user)
+            orderBy [ desc (submits ^. SubmitDate)]
+            return submits
 
 instance HasController (CurrentUser -> Key Contest -> Key ContestProblem -> Key Submit -> HandlerT IO (Entity Submit)) where
   resourceController user _ _ submitId = runQuery q
@@ -85,7 +75,7 @@ instance HasController (CurrentUser -> Key Contest -> Key ContestProblem -> Key 
 instance HasController (CurrentUser -> Key Contest -> Key ContestProblem -> MultipartData -> HandlerT IO (Entity' Submit SubmitWithFiles)) where
   resourceController user _ problem formData = do
     currentTimestamp <- liftIO T.getCurrentTime
-    let submit = Submit problem (entityKey user) currentTimestamp
+    let submit = Submit problem (entityKey user) currentTimestamp QUE
 
     files <- forM (files formData) $ \fd -> liftIO $ do
       contents <- BS.readFile $ fdFilePath fd

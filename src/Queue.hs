@@ -69,7 +69,7 @@ submitTask dbPool submitEntity filesContents = do
   return publishResult
   where
     taskEntityId = fromSqlKey . entityKey $ submitEntity
-    (DM.Submit problemId _ _) = entityVal submitEntity
+    (DM.Submit problemId _ _ _) = entityVal submitEntity
     config = "dummy config"
     taskFiles =
       map
