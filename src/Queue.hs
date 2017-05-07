@@ -25,10 +25,10 @@ connectQueue = AMQP.openConnection'' . AMQP.fromURI
 toDbModel :: TaskResult -> [DM.TestResult]
 toDbModel (TaskResult taskId _ results) =
   map
-    (\(TestResult code exTime ramUsage) ->
+    (\(TestResult testId code exTime ramUsage) ->
        let dbId = toSqlKey taskId
            status = T.pack . show $ code
-       in DM.TestResult dbId status exTime ramUsage)
+       in DM.TestResult dbId (toSqlKey testId) status exTime ramUsage)
     results
 
 runDbQueueSubscriber :: ConnectionPool -> AMQP.Connection -> IO AMQP.ConsumerTag
@@ -38,12 +38,13 @@ runDbQueueSubscriber dbPool qConn = do
     mapM_ (`runSqlPool` dbPool) (insert <$> toDbModel msg)
     AMQP.ackEnv env
 
-toQueueTest :: DM.ProblemTest -> Test
-toQueueTest (DM.ProblemTest _ testInput testOutput) = Test testInput testOutput 0 0
+toQueueTest :: Entity DM.ProblemTest -> Test
+toQueueTest test = Test (fromSqlKey . entityKey $ test) testInput testOutput 0 0
+  where (DM.ProblemTest _ testInput testOutput) = entityVal test
 
 problemTests :: ConnectionPool -> Key DM.ContestProblem -> IO [Test]
 problemTests dbPool problemId =
-  map (toQueueTest . entityVal) <$> runSqlPool q dbPool
+  map toQueueTest <$> runSqlPool q dbPool
   where
     q = select $ from $ \testEntities -> do
       where_ $ testEntities ^. DM.ProblemTestProblem ==. val problemId

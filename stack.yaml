@@ -47,7 +47,7 @@ packages:
   extra-dep: true
 - location:
     git: https://github.com/zmora-agh/zmora-queue.git
-    commit: 6bb5cc45ffb139f1f5288c675cfc8a2e49d3396f
+    commit: 39fea81c4d9371f229c8de421d23d660138e21cc
   extra-dep: true
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)

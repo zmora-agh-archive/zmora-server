@@ -167,6 +167,7 @@ Submit json
 
 TestResult json
   submit SubmitId
+  test ProblemTestId
   status Text
   executionTime Int
   ramUsage Int
