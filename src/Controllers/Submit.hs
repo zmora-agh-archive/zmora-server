@@ -1,41 +1,46 @@
-{-# LANGUAGE DataKinds         #-}
-{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeFamilies      #-}
-{-# LANGUAGE ViewPatterns      #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module Controllers.Submit where
 
 import Control.Monad
 import Crypto.Hash.SHA1
-import Data.Time.Clock as T
-import Database.Esqueleto
 import qualified Data.ByteString as BS
 import qualified Data.Text as T
+import qualified Data.Set as S
+import Data.Time.Clock as T
+import Database.Esqueleto
 import Servant.Multipart
 import Text.Printf (printf)
+import Diener
 
 import Utils.Controller
 import Utils.ExtensibleRecords
 
 import Models
 import Models.SubmitStatus
+import Queue
 
 instance HasController (CurrentUser -> Key Contest -> Key ContestProblem -> HandlerT IO [Entity Submit]) where
   resourceController user _ problemId = runQuery q
     where q = select $ from $ \submits -> do
             where_ $ submits ^. SubmitProblem ==. val problemId
             where_ $ submits ^. SubmitAuthor ==. val (entityKey user)
-            orderBy [ desc (submits ^. SubmitDate)]
+            orderBy [desc (submits ^. SubmitDate)]
             return submits
 
 instance HasController (CurrentUser -> Key Contest -> Key ContestProblem -> Key Submit -> HandlerT IO (Entity Submit)) where
   resourceController user _ _ submitId = runQuery q
-    where q = selectOne $ from $ \submits -> do
-            where_ $ submits ^. SubmitId ==. val submitId
-            where_ $ submits ^. SubmitAuthor ==. val (entityKey user)
-            return submits
+    where
+      q =
+        selectOne $
+        from $ \submits -> do
+          where_ $ submits ^. SubmitId ==. val submitId
+          where_ $ submits ^. SubmitAuthor ==. val (entityKey user)
+          return submits
 
 instance HasController (CurrentUser -> Key Contest -> Key ContestProblem -> Key Submit -> HandlerT IO (Entity' Submit SubmitWithFilesAndTests)) where
   resourceController user _ _ submitId = do
@@ -49,12 +54,14 @@ instance HasController (CurrentUser -> Key Contest -> Key ContestProblem -> Key 
     let files = collectionJoin $ map (\(submit, file, _) -> (submit, file)) res
     let tests = collectionJoin $ map (\(submit, _, test) -> (submit, test)) res
     let r = [(submit, file, test) | (submit, file) <- files, (submit, test) <- tests]
-    (es, ef, et) <- safeHead ErrNotFound $ r
+    (es, ef, et) <- safeHead ErrNotFound r
+    let ef' = (S.toList . S.fromList) ef
+    let et' = (S.toList . S.fromList) et
 
     return $ Entity' (entityKey es)
             $ SubmitWithFilesAndTests
-            $ rAdd (Var :: Var "files") (fmap truncateFile ef)
-            $ rAdd (Var :: Var "tests") (fmap truncateTest et)
+            $ rAdd (Var :: Var "files") (fmap truncateFile ef')
+            $ rAdd (Var :: Var "tests") (fmap truncateTest et')
             $ explode (entityVal es)
     where truncateFile file = Entity' (entityKey file)
             $ rDel (Var :: Var "file")
@@ -70,18 +77,27 @@ instance HasController (CurrentUser -> Key Contest -> Key ContestProblem -> Mult
     currentTimestamp <- liftIO T.getCurrentTime
     let submit = Submit problem (entityKey user) currentTimestamp QUE
 
-    submitFiles <- forM (files formData) $ \fd -> do
-      content <- liftIO $ BS.readFile (fdFilePath fd)
-      let sha1sum = T.pack $ BS.unpack (hash content) >>= printf "%02x"
-      return $ \sid -> do
-        let sfile = SubmitFile sid content sha1sum (fdFileName fd)
-        fileId <- insert sfile
-        return $ Entity' fileId $ rDel (Var :: Var "file") $ explode sfile
+    files <- forM (files formData) $ \fd -> liftIO $ do
+      contents <- BS.readFile $ fdFilePath fd
+      return (fdFileName fd, contents)
+
+    submitFiles <-
+      forM files $ \(filename, content) -> do
+        let sha1sum = T.pack $ BS.unpack (hash content) >>= printf "%02x"
+        return $ \sid -> do
+          let sfile = SubmitFile sid content sha1sum filename
+          fileId <- insert sfile
+          return $ Entity' fileId $ rDel (Var :: Var "file") $ explode sfile
 
     -- TODO Make sure this happens single transaction
-    runQuery $ do
+    entity <- runQuery $ do
       submitId <- insert submit
       files <- sequence $ submitFiles <*> pure submitId
-      return $ Entity' submitId $ SubmitWithFiles
-                                $ rAdd (Var :: Var "files") files
-                                $ explode submit
+      return $
+        Entity' submitId $
+        SubmitWithFiles $ rAdd (Var :: Var "files") files $ explode submit
+
+    dbPool <- asks db
+    _ <- submitTask dbPool (Entity (entityKey' entity) submit) files
+
+    return entity

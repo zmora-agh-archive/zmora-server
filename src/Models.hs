@@ -112,6 +112,11 @@ ProblemExample json
   explanation Text
   deriving Show
 
+ProblemTest
+  problem ContestProblemId
+  input Text
+  output Text
+
 ContestParticipation json
   contest ContestId
   user UserId
@@ -162,10 +167,13 @@ Submit json
 
 TestResult json
   submit SubmitId
+  test ProblemTestId
   status Text
   executionTime Int
   ramUsage Int
   deriving Show
+  deriving Ord
+  deriving Eq
 
 SubmitFile
   submit SubmitId
@@ -175,6 +183,7 @@ SubmitFile
   deriving Show
   deriving Eq
   deriving Generic
+  deriving Ord
 |]
 
 instance Hashable Contest
