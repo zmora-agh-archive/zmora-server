@@ -60,10 +60,15 @@ runDbQueueSubscriber dbPool qConn = do
 
 handleTaskResultMsg :: ConnectionPool -> (TaskResult, AMQP.Envelope) -> IO ()
 handleTaskResultMsg dbPool (taskResult, env) = do
-  -- FIXME run all queries in a single transaction
-  mapM_ (`runSqlPool` dbPool) (insert <$> toDbModel taskResult)
-  updateSubmitStatus dbPool taskResult
+  flip runSqlPool dbPool $ do
+    insertTaskResults
+    updateSubmitStatus
   liftIO $ AMQP.ackEnv env
+  where
+    insertTaskResults = mapM_ insert $ toDbModel taskResult
+    updateSubmitStatus = update $ \p -> do
+      set p [DM.SubmitStatus =. val (submitStatus . testResults $ taskResult)]
+      where_ $ p ^. DM.SubmitId ==. val (toSqlKey . resultId $ taskResult)
 
 --
 -- Queue <-> database model mapping
@@ -85,12 +90,6 @@ toQueueTest test = Test (fromSqlKey . entityKey $ test) testInput testOutput 0 0
 --
 -- Database data manipulation
 --
-updateSubmitStatus :: ConnectionPool -> TaskResult -> IO ()
-updateSubmitStatus dbPool result =
-  flip runSqlPool dbPool $ update $ \p -> do
-      set p [DM.SubmitStatus =. val (submitStatus . testResults $ result)]
-      where_ $ p ^. DM.SubmitId ==. val (toSqlKey . resultId $ result)
-
 problemTests :: ConnectionPool -> Key DM.ContestProblem -> IO [Test]
 problemTests dbPool problemId = map toQueueTest <$> runSqlPool q dbPool
   where
