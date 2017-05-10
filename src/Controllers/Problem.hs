@@ -40,8 +40,8 @@ instance HasController (CurrentUser -> Key Contest -> Key ContestProblem -> Hand
                             $ explode (entityVal cp)
 
 
-instance HasController (CurrentUser -> Key Contest -> Key ContestProblem -> HandlerT IO [ProblemExample]) where
-  resourceController _ _ problemId = fmap entityVal <$> runQuery q
+instance HasController (CurrentUser -> Key Contest -> Key ContestProblem -> HandlerT IO [Entity ProblemExample]) where
+  resourceController _ _ problemId = runQuery q
     where q = select $ from $ \(cp `InnerJoin` exa) -> do
                 on     $ cp ^. ContestProblemProblem ==. exa ^. ProblemExampleProblem
                 where_ $ cp ^. ContestProblemId ==. val problemId
@@ -62,8 +62,8 @@ instance HasController (CurrentUser -> Key Contest -> Key ContestProblem -> Hand
 
           trans ((que, qaut), ans) = QuestionWithAnswers
             $ rAdd (Var :: Var "answers") (trans' <$> mapMaybe (_1 id) ans)
-            $ rSet (Var :: Var "author") (entityVal qaut)
+            $ rSet (Var :: Var "author") qaut
             $ explode (entityVal que)
 
-          trans' (ans, aaut) = ExpandedAnswer $ rSet (Var :: Var "author") (entityVal aaut)
+          trans' (ans, aaut) = ExpandedAnswer $ rSet (Var :: Var "author") aaut
                                               $ explode (entityVal ans)

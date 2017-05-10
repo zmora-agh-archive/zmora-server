@@ -226,7 +226,7 @@ instance (ToJSON (Key a), ToJSON b) => ToJSON (Entity' a b) where
 
 newtype ContestWithOwners = ContestWithOwners {
   _contestWithOwners ::  AsRec Contest
-                      :+ "owners" :-> [User]
+                      :+ "owners" :-> [Entity User]
                       :+ "joined" :-> Bool
 } deriving Show
 
@@ -252,7 +252,7 @@ instance ToJSON ExpandedContestProblem where
 
 newtype QuestionWithAnswers = QuestionWithAnswers {
   _questionWithAnswers ::  AsRec Question
-                        :% "author" :-> User
+                        :% "author" :-> Entity User
                         :+ "answers" :-> [ExpandedAnswer]
 } deriving Show
 
@@ -260,7 +260,7 @@ instance ToJSON QuestionWithAnswers where
   toJSON = toJSON . _questionWithAnswers
 
 newtype ExpandedAnswer = ExpandedAnswer {
-  _expandedAnswer :: AsRec Answer :% "author" :-> User
+  _expandedAnswer :: AsRec Answer :% "author" :-> (Entity User)
 } deriving Show
 
 instance ToJSON ExpandedAnswer where

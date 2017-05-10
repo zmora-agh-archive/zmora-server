@@ -27,7 +27,7 @@ instance HasController (CurrentUser -> Key Contest -> HandlerT IO (Entity' Conte
     return $ Entity' (entityKey ec)
               $ ContestWithOwners
               $ rAdd (Var :: Var "joined") True -- Otherwise user should get unauthorized
-              $ rAdd (Var :: Var "owners") (fmap entityVal eu)
+              $ rAdd (Var :: Var "owners") eu
               $ explode (entityVal ec)
 
 instance HasController (CurrentUser -> HandlerT IO [Entity' Contest ContestWithOwners]) where
@@ -43,7 +43,7 @@ instance HasController (CurrentUser -> HandlerT IO [Entity' Contest ContestWithO
           enrich ((ec, pt), eu) = Entity' (entityKey ec)
                               $ ContestWithOwners
                               $ rAdd (Var :: Var "joined") (isJust pt)
-                              $ rAdd (Var :: Var "owners") (fmap entityVal eu)
+                              $ rAdd (Var :: Var "owners") eu
                               $ explode (entityVal ec)
 
 instance HasController (CurrentUser -> Key Contest -> Text -> HandlerT IO Bool) where

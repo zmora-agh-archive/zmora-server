@@ -35,7 +35,7 @@ type ProtectedAPI =
   :<|> ContestPath ( "problems" :> G [Entity' ContestProblem ExpandedContestProblem] )
   :<|> ContestProblemPath ( G (Entity' ContestProblem ExpandedContestProblem) )
 
-  :<|> ContestProblemPath ( "examples"  :> G [ProblemExample] )
+  :<|> ContestProblemPath ( "examples"  :> G [Entity ProblemExample] )
   :<|> ContestProblemPath ( "questions" :> G [QuestionWithAnswers] )
   :<|> ContestProblemPath ( "submits"   :> G [Entity Submit] )
   :<|> ContestProblemPath ( "submits"   :> MultipartForm MultipartData :> P (Entity' Submit SubmitWithFiles) )
